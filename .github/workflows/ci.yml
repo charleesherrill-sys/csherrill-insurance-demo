@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build & test (Java 8)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:12
+        env:
+          POSTGRES_USER: aegis
+          POSTGRES_PASSWORD: aegis_dev_password
+          POSTGRES_DB: aegis
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U aegis -d aegis"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+
+      - name: Load database schema and seed data
+        env:
+          PGPASSWORD: aegis_dev_password
+        run: |
+          psql -h localhost -U aegis -d aegis -f db/schema.sql
+          psql -h localhost -U aegis -d aegis -f db/seed.sql
+
+      - name: Build and run tests
+        env:
+          AEGIS_DB_URL: jdbc:postgresql://localhost:5432/aegis
+          AEGIS_DB_USER: aegis
+          AEGIS_DB_PASSWORD: aegis_dev_password
+        run: mvn -B clean package
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+  dependency-audit:
+    name: Dependency / security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+
+      # Fails the job when a dependency has a CVE at or above CVSS 7 (see pom.xml
+      # 'audit' profile). The seeded log4j-core 2.14.1 / commons-collections 3.2.1
+      # are expected to trip this. See REVIEW.md.
+      - name: OWASP dependency-check
+        run: mvn -B -Paudit org.owasp:dependency-check-maven:check
+
+      - name: Upload dependency-check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: target/dependency-check-report.*
+          if-no-files-found: ignore
