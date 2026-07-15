@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Policies — Aegis</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header th:replace="fragments/nav :: topbar('policies')"></header>
+<div class="container">
+    <h1>Policies</h1>
+    <div class="card">
+        <table>
+            <thead><tr><th>Policy #</th><th>Product</th><th>Status</th><th>Premium</th><th>Effective</th></tr></thead>
+            <tbody>
+                <tr th:each="p : ${policies}">
+                    <td th:text="${p.policyNumber}">POL</td>
+                    <td th:text="${p.product}">Product</td>
+                    <td><span class="badge" th:classappend="${p.status}" th:text="${p.status}">ACTIVE</span></td>
+                    <td th:text="'$' + ${#numbers.formatDecimal(p.premiumCents / 100.0, 1, 'COMMA', 2, 'POINT')}">$0.00</td>
+                    <td th:text="${p.effectiveDate}">2019-01-01</td>
+                </tr>
+                <tr th:if="${policies.isEmpty()}"><td colspan="5" class="muted">No policies.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

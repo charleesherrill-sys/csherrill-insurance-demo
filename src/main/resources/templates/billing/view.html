@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Billing — Aegis</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header th:replace="fragments/nav :: topbar('billing')"></header>
+<div class="container">
+    <h1>Billing</h1>
+
+    <div class="card">
+        <h2>Total outstanding</h2>
+        <div class="metric" th:text="'$' + ${#numbers.formatDecimal(totalOutstandingCents / 100.0, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+    </div>
+
+    <div class="card">
+        <form method="get" th:action="@{/billing}" style="display:flex;gap:10px;align-items:flex-end;">
+            <div class="field" style="margin-bottom:0;">
+                <label>Filter by status</label>
+                <input type="text" name="status" th:value="${statusFilter}" placeholder="e.g. OPEN"/>
+            </div>
+            <button class="btn" type="submit">Filter</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead><tr><th>Invoice #</th><th>Policy</th><th>Amount</th><th>Outstanding</th><th>Status</th><th>Due</th></tr></thead>
+            <tbody>
+                <tr th:each="i : ${invoices}">
+                    <td th:text="${i.invoiceNumber}">INV</td>
+                    <td th:text="${i.policyNumber}">POL</td>
+                    <td th:text="${i.amountDisplay}">$0.00</td>
+                    <td th:text="${i.outstandingDisplay}">$0.00</td>
+                    <td><span class="badge" th:classappend="${i.status}" th:text="${i.status}">OPEN</span></td>
+                    <td th:text="${i.dueDate}">2024-07-01</td>
+                </tr>
+                <tr th:if="${invoices.isEmpty()}"><td colspan="6" class="muted">No invoices match.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>
