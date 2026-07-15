@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Claims — Aegis</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header th:replace="fragments/nav :: topbar('claims')"></header>
+<div class="container">
+    <h1>Claims</h1>
+    <div class="card">
+        <form method="get" th:action="@{/claims}" style="display:flex;gap:10px;align-items:flex-end;">
+            <div class="field" style="margin-bottom:0;">
+                <label>Filter by status</label>
+                <input type="text" name="status" th:value="${statusFilter}" placeholder="e.g. PAID"/>
+            </div>
+            <button class="btn" type="submit">Filter</button>
+            <a class="btn" style="background:#0b6ea8;" th:href="@{/claims/new}">New claim</a>
+        </form>
+    </div>
+    <div class="card">
+        <table>
+            <thead><tr><th>Claim #</th><th>Policy</th><th>Type</th><th>Amount</th><th>Approved</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                <tr th:each="c : ${claims}">
+                    <td th:text="${c.claimNumber}">CLM</td>
+                    <td th:text="${c.policyNumber}">POL</td>
+                    <td th:text="${c.claimType}">MEDICAL</td>
+                    <td th:text="${c.amountDisplay}">$0.00</td>
+                    <td th:text="${c.approvedDisplay}">$0.00</td>
+                    <td><span class="badge" th:classappend="${c.status}" th:text="${c.status}">SUBMITTED</span></td>
+                    <td><a th:href="@{'/claims/' + ${c.id}}">View</a></td>
+                </tr>
+                <tr th:if="${claims.isEmpty()}"><td colspan="7" class="muted">No claims match.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'Claim ' + ${claim.claimNumber} + ' — Aegis'">Claim — Aegis</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header th:replace="fragments/nav :: topbar('claims')"></header>
+<div class="container">
+    <p class="muted"><a th:href="@{/claims}">&laquo; Back to claims</a></p>
+    <h1 th:text="'Claim ' + ${claim.claimNumber}">Claim</h1>
+
+    <div class="card">
+        <table>
+            <tr><th style="width:200px;">Status</th><td><span class="badge" th:classappend="${claim.status}" th:text="${claim.status}">SUBMITTED</span></td></tr>
+            <tr><th>Policy</th><td th:text="${claim.policyNumber}">POL</td></tr>
+            <tr><th>Type</th><td th:text="${claim.claimType}">MEDICAL</td></tr>
+            <tr><th>Diagnosis</th><td th:text="${claim.diagnosisCode}">code</td></tr>
+            <tr><th>Billed amount</th><td th:text="${claim.amountDisplay}">$0.00</td></tr>
+            <tr><th>Approved amount</th><td th:text="${claim.approvedDisplay}">$0.00</td></tr>
+            <tr><th>Adjudicator notes</th><td th:text="${claim.adjudicatorNotes}">-</td></tr>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Service lines</h2>
+        <table>
+            <thead><tr><th>Code</th><th>Description</th><th>Billed</th><th>Allowed</th></tr></thead>
+            <tbody>
+                <tr th:each="l : ${claim.lines}">
+                    <td th:text="${l.serviceCode}">99213</td>
+                    <td th:text="${l.description}">desc</td>
+                    <td th:text="${l.billedDisplay}">$0.00</td>
+                    <td th:text="${l.allowedDisplay}">$0.00</td>
+                </tr>
+                <tr th:if="${claim.lines.isEmpty()}"><td colspan="4" class="muted">No service lines.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card" th:if="${claim.status == 'SUBMITTED' or claim.status == 'VALIDATED'}">
+        <h2>Actions</h2>
+        <form method="post" th:action="@{'/claims/' + ${claim.id} + '/adjudicate'}">
+            <button class="btn" type="submit">Validate &amp; adjudicate</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

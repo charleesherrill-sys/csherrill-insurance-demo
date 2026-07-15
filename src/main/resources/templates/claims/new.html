@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>New claim — Aegis</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header th:replace="fragments/nav :: topbar('claims')"></header>
+<div class="container">
+    <h1>File a new claim</h1>
+    <div class="card">
+        <form method="post" th:action="@{/claims}">
+            <div class="field">
+                <label>Policy</label>
+                <select name="policyId">
+                    <option th:each="p : ${policies}" th:value="${p.id}" th:text="${p.policyNumber} + ' — ' + ${p.product}">POL</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Claim type</label>
+                <select name="claimType">
+                    <option>MEDICAL</option>
+                    <option>PHARMACY</option>
+                    <option>DENTAL</option>
+                    <option>VISION</option>
+                    <option>DISABILITY</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Amount (cents)</label>
+                <input type="number" name="amountCents" value="10000"/>
+            </div>
+            <div class="field">
+                <label>Diagnosis code</label>
+                <input type="text" name="diagnosisCode" value="R51"/>
+            </div>
+            <button class="btn" type="submit">Submit claim</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
