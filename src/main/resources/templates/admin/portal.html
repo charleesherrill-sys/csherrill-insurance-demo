@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Admin — Aegis</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="topbar"><div class="brand">AEGIS Admin</div></header>
+<div class="container">
+    <h1>Admin portal</h1>
+    <p class="muted">Internal maintenance console.</p>
+
+    <div class="card">
+        <h2>Claim counts by status</h2>
+        <table>
+            <thead><tr><th>Status</th><th>Count</th></tr></thead>
+            <tbody>
+                <tr th:each="e : ${claimCounts}">
+                    <td th:text="${e.key}">SUBMITTED</td>
+                    <td th:text="${e.value}">0</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Maintenance</h2>
+        <p><a class="btn" th:href="@{/admin/users}">Export users (JSON)</a></p>
+        <form method="post" th:action="@{/admin/reconciliation/run}" style="margin-top:10px;">
+            <button class="btn" type="submit">Run reconciliation now</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

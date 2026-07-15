@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Reports — Aegis</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header th:replace="fragments/nav :: topbar('reports')"></header>
+<div class="container">
+    <h1>Reports</h1>
+
+    <div class="card">
+        <h2>Approved/paid by claim type</h2>
+        <table>
+            <thead><tr><th>Claim type</th><th>Total approved</th></tr></thead>
+            <tbody>
+                <tr th:each="e : ${paidByType}">
+                    <td th:text="${e.key}">MEDICAL</td>
+                    <td th:text="'$' + ${#numbers.formatDecimal(e.value / 100.0, 1, 'COMMA', 2, 'POINT')}">$0.00</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Total outstanding invoices</h2>
+        <div class="metric" th:text="'$' + ${#numbers.formatDecimal(totalOutstandingCents / 100.0, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+    </div>
+</div>
+</body>
+</html>
