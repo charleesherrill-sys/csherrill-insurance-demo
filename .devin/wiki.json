@@ -1,0 +1,80 @@
+{
+  "repo_notes": [
+    {
+      "content": "Aegis is a legacy insurance/benefits monolith (Java 8, Spring Boot 2.3.x, hand-written JDBC over Postgres, Thymeleaf UI). It is a representative extract of a much larger legacy estate. Organize the wiki around the nine subsystems under com.aegis.*: auth, policy, claims, billing, document, admin, reporting, batch, integration.",
+      "author": "Aegis Platform Team"
+    },
+    {
+      "content": "The claims and billing packages are the hot paths and the most important part of the codebase. The core business flow is claim adjudication: submit -> validate -> adjudicate -> trigger payment (see com.aegis.claims.service.ClaimIntakeService and com.aegis.claims.service.AdjudicationService, which calls into com.aegis.billing.service.PaymentService). Emphasize these over the peripheral admin/reporting pages.",
+      "author": "Aegis Platform Team"
+    },
+    {
+      "content": "The single most demo-relevant file is com.aegis.claims.web.ClaimDetailController (GET /claims/{id}). Its getClaim method loads a claim by id and renders it without checking ownership, which is a broken-access-control / IDOR issue (CWE-639). Make sure the Claims Adjudication and Security Notes pages both reference it by name.",
+      "author": "Aegis Platform Team"
+    },
+    {
+      "content": "Performance and cost issues live in the claims-list and billing paths: ClaimService.getClaimsForMember and BillingService.getBillingForMember both run N+1 queries (one query for the list, then two more per row). These are intentional and are the 'losing money' angle. See REVIEW.md for the full catalogue of intentional patterns.",
+      "author": "Aegis Platform Team"
+    }
+  ],
+  "pages": [
+    {
+      "title": "Overview & Architecture",
+      "purpose": "Introduce Aegis as a legacy insurance claims/policy/billing monolith and map the nine subsystems (auth, policy, claims, billing, document, admin, reporting, batch, integration) and how a request flows from the Thymeleaf UI through controllers, services, and raw-JDBC repositories to Postgres. Include the browser flow login -> dashboard -> claims list -> claim detail -> billing.",
+      "parent": null,
+      "page_notes": [
+        "Entry point is com.aegis.AegisApplication. Cross-cutting infra lives in com.aegis.common (db.Database, config.AppConfig, audit.AuditService, web.WebConfig/DashboardController).",
+        "There is no ORM: repositories use raw JDBC via com.aegis.common.db.Database. Call this out as a defining trait of the estate.",
+        "Auth is cookie/session based (AEGIS_SESSION) and only enforces authentication, not per-record authorization."
+      ]
+    },
+    {
+      "title": "Authentication & Sessions",
+      "purpose": "Document the login flow, cookie-based session management, and role model (MEMBER, ADJUSTER, ADMIN). Explain what the AuthInterceptor does and, importantly, what it does not do (it proves you are logged in but does not enforce per-record ownership).",
+      "parent": "Overview & Architecture",
+      "page_notes": [
+        "Key classes: auth.web.LoginController, auth.web.AuthInterceptor, auth.service.AuthService, auth.service.SessionManager, auth.service.PasswordHasher.",
+        "PasswordHasher uses unsalted MD5 (CWE-327/CWE-916). Note this but defer the security catalogue to the Security Notes page."
+      ]
+    },
+    {
+      "title": "Claims Adjudication",
+      "purpose": "Document the core claims flow end-to-end: intake and validation (ClaimIntakeService), adjudication and fraud scoring (AdjudicationService), and how payment is triggered. Explain the claims-list page and the claim-detail page, including the ClaimDetailController.getClaim endpoint (GET /claims/{id}).",
+      "parent": "Overview & Architecture",
+      "page_notes": [
+        "This is the most important page. Trace submit -> validate -> adjudicate -> trigger payment across ClaimIntakeService, AdjudicationService, ClaimRepository, and PaymentService.",
+        "Call out ClaimDetailController.getClaim as the flagship broken-access-control / IDOR risk (CWE-639), and ClaimService.getClaimsForMember as the N+1 performance risk.",
+        "The status filter on the claims list reaches ClaimRepository.searchByStatus, which concatenates SQL (CWE-89)."
+      ]
+    },
+    {
+      "title": "Billing & Payments",
+      "purpose": "Document invoices, payments, and disbursement through the mocked external payment gateway. Explain the member billing view and the outstanding-balance math, and how adjudicated claims trigger payments.",
+      "parent": "Overview & Architecture",
+      "page_notes": [
+        "Key classes: billing.web.BillingController, billing.service.BillingService, billing.service.PaymentService, billing.repository.BillingRepository.",
+        "BillingService.getBillingForMember has the same N+1 shape as the claims list (per-invoice payments + policy lookups).",
+        "BillingRepository.searchInvoices concatenates SQL (CWE-89)."
+      ]
+    },
+    {
+      "title": "Batch Reconciliation",
+      "purpose": "Document the nightly reconciliation job that walks open invoices and payments and records run summaries. Explain how it duplicates the adjudication approved-amount calculation.",
+      "parent": "Overview & Architecture",
+      "page_notes": [
+        "Key classes: batch.ReconciliationJob (scheduled cron) and batch.ReconciliationService.",
+        "ReconciliationService.expectedApprovedCents duplicates AdjudicationService's approved-amount logic (intentional duplication)."
+      ]
+    },
+    {
+      "title": "Security Notes",
+      "purpose": "Summarize the intentional, seeded security weaknesses across the codebase so a reader understands the risk surface. Cross-reference REVIEW.md and AGENTS.md, which mark these as deliberate demo artifacts.",
+      "parent": "Overview & Architecture",
+      "page_notes": [
+        "IDOR / broken access control on ClaimDetailController.getClaim (CWE-639) is the flagship issue.",
+        "SQL injection via string concatenation in ClaimRepository.searchByStatus and BillingRepository.searchInvoices (CWE-89).",
+        "Missing authentication on AdminController endpoints (CWE-306); hardcoded secrets in AppConfig/application.properties (CWE-798); MD5 password hashing (CWE-327/916); path traversal in DocumentService/DocumentController (CWE-22); pinned vulnerable dependencies log4j-core 2.14.1 and commons-collections 3.2.1 in pom.xml."
+      ]
+    }
+  ]
+}
