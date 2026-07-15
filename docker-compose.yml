@@ -1,0 +1,45 @@
+version: "3.8"
+
+# Aegis Claims Platform — local demo stack.
+# Bring the whole thing up with: docker-compose up --build
+# Then open http://localhost:8080 and log in (see README.md for seeded users).
+
+services:
+  db:
+    image: postgres:12
+    container_name: aegis-db
+    environment:
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: aegis_dev_password
+      POSTGRES_DB: aegis
+    ports:
+      - "5432:5432"
+    volumes:
+      # Schema + seed data are applied automatically on first boot.
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - aegis-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis -d aegis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: aegis-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      AEGIS_DB_URL: jdbc:postgresql://db:5432/aegis
+      AEGIS_DB_USER: aegis
+      AEGIS_DB_PASSWORD: aegis_dev_password
+    ports:
+      - "8080:8080"
+    volumes:
+      - aegis-uploads:/var/aegis/uploads
+
+volumes:
+  aegis-pgdata:
+  aegis-uploads:
