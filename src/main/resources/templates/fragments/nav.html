@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"/></head>
+<body>
+<header class="topbar" th:fragment="topbar(active)">
+    <div class="brand">AEGIS <span style="font-weight:400;font-size:13px;">Claims Platform</span></div>
+    <nav>
+        <a th:href="@{/dashboard}" th:classappend="${active=='dashboard'} ? 'active'">Dashboard</a>
+        <a th:href="@{/claims}" th:classappend="${active=='claims'} ? 'active'">Claims</a>
+        <a th:href="@{/billing}" th:classappend="${active=='billing'} ? 'active'">Billing</a>
+        <a th:href="@{/policies}" th:classappend="${active=='policies'} ? 'active'">Policies</a>
+        <a th:href="@{/reports}" th:classappend="${active=='reports'} ? 'active'">Reports</a>
+        <a th:href="@{/logout}">Log out</a>
+    </nav>
+</header>
+</body>
+</html>

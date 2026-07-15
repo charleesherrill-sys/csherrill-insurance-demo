@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Sign in — Aegis Claims Platform</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<div class="login-wrap">
+    <div class="card">
+        <h1 style="margin-top:0;">AEGIS</h1>
+        <p class="muted">Claims, Policy &amp; Billing Platform</p>
+        <p class="error" th:if="${error}" th:text="${error}">error</p>
+        <form method="post" th:action="@{/login}">
+            <div class="field">
+                <label>Username</label>
+                <input type="text" name="username" autofocus/>
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" name="password"/>
+            </div>
+            <button class="btn" type="submit" style="width:100%;">Sign in</button>
+        </form>
+        <p class="muted" style="margin-top:16px;">
+            Demo members: <code>amorgan</code> / <code>password</code>,
+            <code>bhopkins</code> / <code>password</code>.
+        </p>
+    </div>
+</div>
+</body>
+</html>
