@@ -12,19 +12,17 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * Serves the claim-detail page: {@code GET /claims/{id}}.
  *
- * <p>SECURITY (INTENTIONAL — THE FLAGSHIP BUG — see REVIEW.md):
- * {@link #getClaim} loads the claim by id and renders it WITHOUT verifying that
- * the claim belongs to the authenticated member. Any logged-in user can read any
- * other member's claim by changing the id in the URL.
- * CWE-639: Authorization Bypass Through User-Controlled Key (IDOR).
- *
- * <p>The correct behavior would be: if the current user is not an ADJUSTER/ADMIN,
- * reject the request when {@code claim.getMemberUserId() != user.getUserId()}.
- * That check is deliberately absent. Do NOT add it unless that is the task.
+ * <p>Ownership is enforced: {@link #getClaim} loads the claim by id and only
+ * renders it when the claim belongs to the authenticated member, or the member
+ * is privileged (ADMIN/ADJUSTER may view any claim). Non-privileged members may
+ * only view their own claims; requests for another member's claim are rejected
+ * with HTTP 403. CWE-639 (Authorization Bypass Through User-Controlled Key /
+ * IDOR) is remediated here.
  */
 @Controller
 public class ClaimDetailController {
@@ -41,6 +39,7 @@ public class ClaimDetailController {
     @GetMapping("/claims/{id}")
     public String getClaim(@PathVariable("id") long id,
                            HttpServletRequest request,
+                           HttpServletResponse response,
                            Model model) {
         UserSession user = CurrentUser.from(request);
 
@@ -50,9 +49,9 @@ public class ClaimDetailController {
             return "claims/not-found";
         }
 
-        // Access is logged, but NOT authorized. The audit row is exactly what the
-        // production alert in demo/trigger-artifact.md is built from: it shows a
-        // user reading a claim that belongs to a different member.
+        // Access is logged. The audit row is exactly what the production alert in
+        // demo/trigger-artifact.md is built from: it shows a user reading a claim
+        // that belongs to a different member.
         boolean crossAccount = claim.getMemberUserId() != user.getUserId();
         auditService.record(user.getUserId(), "CLAIM_VIEW", "claim",
                 String.valueOf(id),
@@ -61,8 +60,12 @@ public class ClaimDetailController {
                           + " owner " + claim.getMemberUserId()
                         : "self read");
 
-        // MISSING AUTHORIZATION CHECK (CWE-639): the claim is returned regardless
-        // of ownership. See class Javadoc.
+        if (!user.canViewAllMembers() && claim.getMemberUserId() != user.getUserId()) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            model.addAttribute("user", user);
+            return "error/forbidden";
+        }
+
         model.addAttribute("user", user);
         model.addAttribute("claim", claim);
         return "claims/detail";
