@@ -9,9 +9,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * Registers the {@link AuthInterceptor} for authenticated areas of the app.
  *
- * <p>NOTE (see REVIEW.md): the {@code /admin/**} area is intentionally NOT behind
- * the interceptor here, and {@code AdminController} has an unauthenticated
- * maintenance endpoint (CWE-306, Missing Authentication for Critical Function).
+ * <p>SECURITY (CWE-306): the {@code /admin/**} area is covered by the auth
+ * interceptor so every admin endpoint requires an authenticated session.
+ * Role-based authorization (ADMIN only) is enforced in {@code AdminController}.
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
@@ -27,7 +27,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/dashboard", "/claims/**", "/billing/**",
-                        "/policies/**", "/documents/**", "/reports/**")
+                        "/policies/**", "/documents/**", "/reports/**", "/admin/**")
                 .excludePathPatterns("/login", "/logout", "/css/**", "/js/**",
                         "/webjars/**", "/error", "/health");
     }
