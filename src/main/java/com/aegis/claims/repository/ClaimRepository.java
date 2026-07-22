@@ -71,22 +71,25 @@ public class ClaimRepository {
     /**
      * Searches claims with an optional status filter typed by the user.
      *
-     * <p>SECURITY (INTENTIONAL — see REVIEW.md): the {@code status} value is
-     * concatenated directly into the SQL string (CWE-89, SQL Injection). A value
-     * like {@code "' OR '1'='1"} returns every member's claims. Do NOT parameterize
-     * this unless that is the explicit task.
+     * <p>SECURITY (REMEDIATED — CWE-89, SQL Injection — see REVIEW.md): the
+     * {@code status} value is bound as a {@link PreparedStatement} parameter
+     * instead of being concatenated into the SQL string, so a value like
+     * {@code "' OR '1'='1"} is treated as a literal status rather than executable
+     * SQL. {@code memberUserId} is also bound.
      */
     public List<Claim> searchByStatus(long memberUserId, String status) {
         String sql = "SELECT " + BASE_COLUMNS + " FROM claims "
-                + "WHERE member_user_id = " + memberUserId
-                + " AND status = '" + status + "' "
+                + "WHERE member_user_id = ? AND status = ? "
                 + "ORDER BY submitted_at DESC";
         List<Claim> out = new ArrayList<>();
         try (Connection c = db.getConnection();
-             Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                out.add(map(rs));
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, memberUserId);
+            ps.setString(2, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    out.add(map(rs));
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException("claim searchByStatus failed", e);

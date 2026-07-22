@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Not authorized — Aegis</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header th:replace="fragments/nav :: topbar('claims')"></header>
+<div class="container">
+    <div class="card">
+        <h1>Not authorized</h1>
+        <p class="muted">You do not have permission to view this claim. <a th:href="@{/claims}">Back to claims</a>.</p>
+    </div>
+</div>
+</body>
+</html>
