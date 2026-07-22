@@ -21,8 +21,9 @@ import java.util.List;
  * Member billing view (the billing page).
  *
  * <p>This page is the billing half of the flagship N+1 issue (see
- * {@link BillingService}). The optional {@code status} filter reaches a
- * string-concatenated query (CWE-89).
+ * {@link BillingService}). The optional {@code status} filter is passed to
+ * {@link BillingRepository#searchInvoices(long, String)}, which binds it as a
+ * query parameter.
  */
 @Controller
 public class BillingController {
