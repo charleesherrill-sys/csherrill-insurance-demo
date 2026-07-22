@@ -1,7 +1,9 @@
 version: "3.8"
 
 # Aegis Claims Platform — local demo stack.
-# Bring the whole thing up with: docker-compose up --build
+# Copy .env.example to .env and fill in the required secrets first, then:
+#   docker-compose up --build
+# Compose fails fast (via the ${VAR:?...} syntax) if a required secret is unset.
 # Then open http://localhost:8080 and log in (see README.md for seeded users).
 
 services:
@@ -10,7 +12,7 @@ services:
     container_name: aegis-db
     environment:
       POSTGRES_USER: aegis
-      POSTGRES_PASSWORD: aegis_dev_password
+      POSTGRES_PASSWORD: ${AEGIS_DB_PASSWORD:?set AEGIS_DB_PASSWORD in .env}
       POSTGRES_DB: aegis
     ports:
       - "5432:5432"
@@ -34,7 +36,10 @@ services:
     environment:
       AEGIS_DB_URL: jdbc:postgresql://db:5432/aegis
       AEGIS_DB_USER: aegis
-      AEGIS_DB_PASSWORD: aegis_dev_password
+      AEGIS_DB_PASSWORD: ${AEGIS_DB_PASSWORD:?set AEGIS_DB_PASSWORD in .env}
+      AEGIS_ADMIN_BOOTSTRAP_PASSWORD: ${AEGIS_ADMIN_BOOTSTRAP_PASSWORD:?set AEGIS_ADMIN_BOOTSTRAP_PASSWORD in .env}
+      AEGIS_PAYMENT_GATEWAY_API_KEY: ${AEGIS_PAYMENT_GATEWAY_API_KEY:?set AEGIS_PAYMENT_GATEWAY_API_KEY in .env}
+      AEGIS_FRAUD_SHARED_SECRET: ${AEGIS_FRAUD_SHARED_SECRET:?set AEGIS_FRAUD_SHARED_SECRET in .env}
     ports:
       - "8080:8080"
     volumes:

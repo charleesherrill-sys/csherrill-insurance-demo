@@ -48,12 +48,32 @@ the hot paths and the most interesting part of the codebase.
 
 You need Docker and Docker Compose.
 
+First provide the required secrets, then start the stack:
+
 ```bash
+cp .env.example .env   # then edit .env and fill in the values
 docker-compose up --build
 ```
 
 This starts Postgres (schema and seed data are applied automatically) and the application.
 Open http://localhost:8080 and sign in.
+
+### Configuration and secrets
+
+Secrets are **not** stored in source. `application.properties` reads them from environment
+variables with **no in-source default**, so the app fails to start if a required secret is
+missing (fail-closed) instead of falling back to a shipped credential.
+
+| Environment variable | Required | Purpose |
+|----------------------|----------|---------|
+| `AEGIS_DB_PASSWORD` | yes | Database password (shared by the db container and the app) |
+| `AEGIS_ADMIN_BOOTSTRAP_PASSWORD` | yes | Admin bootstrap account password |
+| `AEGIS_PAYMENT_GATEWAY_API_KEY` | yes | Payment-gateway API key for outbound disburse calls |
+| `AEGIS_FRAUD_SHARED_SECRET` | yes | Fraud integration shared secret |
+| `AEGIS_DB_URL`, `AEGIS_DB_USER`, `AEGIS_ADMIN_BOOTSTRAP_USER`, `AEGIS_PAYMENT_GATEWAY_URL`, `AEGIS_DOC_ROOT` | no | Non-secret settings with safe defaults |
+
+Use `.env` (gitignored) for local development or a secrets manager/vault in real deployments.
+Any value that was previously committed to source must be rotated.
 
 ### Seeded users
 

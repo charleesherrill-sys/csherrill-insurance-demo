@@ -9,3 +9,4 @@ target/
 dependency-check-report.*
 .DS_Store
 uploads/
+.env
