@@ -6,9 +6,10 @@ import org.springframework.stereotype.Component;
 /**
  * Central configuration holder.
  *
- * <p>NOTE (see REVIEW.md): the integration credentials and admin bootstrap
- * password are hardcoded fallbacks in {@code application.properties}
- * (CWE-798, Use of Hard-coded Credentials). Intentional for the demo.
+ * <p>The integration credentials and admin bootstrap password are sourced from
+ * environment variables only, with no in-source default in
+ * {@code application.properties}. The application fails to start if a required
+ * secret is missing rather than falling back to a shipped credential.
  */
 @Component
 public class AppConfig {
