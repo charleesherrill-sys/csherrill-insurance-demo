@@ -15,9 +15,9 @@ import java.io.IOException;
 /**
  * Document download endpoint.
  *
- * <p>SECURITY (INTENTIONAL — see REVIEW.md): the {@code file} parameter is passed
- * straight to {@link DocumentService#readDocument(String)}, which is vulnerable to
- * path traversal (CWE-22). Example: {@code GET /documents/download?file=../../etc/passwd}.
+ * <p>The {@code file} parameter is resolved and containment-checked against the
+ * documents root by {@link DocumentService#readDocument(String)}; requests that
+ * escape the root (path traversal, CWE-22) are rejected with a 404.
  */
 @Controller
 public class DocumentController {
@@ -31,11 +31,20 @@ public class DocumentController {
 
     @GetMapping("/documents/download")
     @ResponseBody
-    public ResponseEntity<byte[]> download(@RequestParam("file") String file) throws IOException {
-        byte[] content = documentService.readDocument(file);
+    public ResponseEntity<byte[]> download(@RequestParam("file") String file) {
+        byte[] content;
+        try {
+            content = documentService.readDocument(file);
+        } catch (IOException e) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + sanitizeHeader(file) + "\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(content);
+    }
+
+    private static String sanitizeHeader(String filename) {
+        return filename == null ? "" : filename.replaceAll("[\\r\\n\"\\\\/]", "_");
     }
 }
