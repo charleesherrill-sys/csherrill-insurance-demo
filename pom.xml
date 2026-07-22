@@ -50,28 +50,28 @@
         </dependency>
 
         <!--
-          INTENTIONAL / DO NOT "UPGRADE" WITHOUT READING REVIEW.md.
-          Known-vulnerable pinned dependency (Log4Shell, CVE-2021-44228) used by the
-          integration layer's audit logger. Left here so a dependency/security audit
-          in CI has something concrete to flag. See REVIEW.md and AGENTS.md.
+          log4j used by the integration layer's audit logger. Upgraded to the latest
+          2.x to remediate Log4Shell and follow-ups (CVE-2021-44228, CVE-2021-45046,
+          CVE-2021-45105, CVE-2021-44832). The 2.x line still runs on Java 8.
         -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>2.14.1</version>
+            <version>2.25.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
-            <version>2.14.1</version>
+            <version>2.25.2</version>
         </dependency>
 
-        <!-- Legacy commons-collections retained for the batch job's object cache.
-             Also known-vulnerable (CVE-2015-7501). Intentional — see REVIEW.md. -->
+        <!-- commons-collections used for the batch job's object cache. Upgraded to
+             3.2.2 to remediate the InvokerTransformer deserialization gadget
+             (CVE-2015-7501); 3.2.2 keeps the same LRUMap API. -->
         <dependency>
             <groupId>commons-collections</groupId>
             <artifactId>commons-collections</artifactId>
-            <version>3.2.1</version>
+            <version>3.2.2</version>
         </dependency>
 
         <dependency>
