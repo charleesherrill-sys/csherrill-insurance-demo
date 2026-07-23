@@ -8,7 +8,7 @@ RUN mvn -B -q dependency:go-offline || true
 COPY src ./src
 RUN mvn -B -q clean package -DskipTests
 
-FROM openjdk:8-jre-slim
+FROM eclipse-temurin:8-jre
 WORKDIR /app
 RUN mkdir -p /var/aegis/uploads
 COPY --from=build /build/target/aegis-claims-platform.jar app.jar

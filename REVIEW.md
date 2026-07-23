@@ -8,18 +8,33 @@ test; leave the rest in place.
 
 ## Intentional security weaknesses
 
-| # | Issue | CWE | Where |
-|---|-------|-----|-------|
-| 1 | **Broken access control / IDOR (flagship)** — the claim-detail endpoint loads a claim by id and renders it without verifying ownership, so any authenticated user can read any other member's claim by changing the id. | CWE-639 | `claims.web.ClaimDetailController.getClaim` (`GET /claims/{id}`) |
-| 2 | **SQL injection** — the claims and billing status filters build SQL by string concatenation. | CWE-89 | `claims.repository.ClaimRepository.searchByStatus`, `billing.repository.BillingRepository.searchInvoices` |
-| 3 | **Missing authentication for critical function** — the entire `/admin/**` area is not behind the auth interceptor; `/admin/users` dumps users + password hashes and `/admin/reconciliation/run` triggers a financial batch. | CWE-306 | `admin.web.AdminController`, `common.web.WebConfig` (admin paths deliberately not intercepted) |
-| 4 | **Hardcoded credentials/secrets** — integration API key, fraud shared secret, and admin bootstrap password are hardcoded fallbacks. | CWE-798 | `src/main/resources/application.properties`, `common.config.AppConfig` |
-| 5 | **Weak password hashing** — passwords are stored as unsalted MD5. | CWE-327, CWE-916 | `auth.service.PasswordHasher` |
-| 6 | **Path traversal** — the document download endpoint joins a caller-supplied filename to the storage root with no containment check. | CWE-22 | `document.service.DocumentService.readDocument`, `document.web.DocumentController` |
-| 7 | **Known-vulnerable dependencies** — `log4j-core` / `log4j-api` 2.14.1 (Log4Shell, CVE-2021-44228) and `commons-collections` 3.2.1 (CVE-2015-7501) are pinned so the CI dependency audit has something concrete to flag. | — | `pom.xml`, `integration.NotificationService`, `batch.ReconciliationService` |
+> **Remediation status (items 1–6):** the six application-level security weaknesses
+> below have been **remediated**. They are retained in this table for historical
+> context and to document what each fix addresses. Item 7 (pinned vulnerable
+> dependencies) is intentionally left in place so the CI dependency audit still has
+> something concrete to flag.
+
+| # | Issue | CWE | Where | Status |
+|---|-------|-----|-------|--------|
+| 1 | **Broken access control / IDOR (flagship)** — the claim-detail endpoint loaded a claim by id and rendered it without verifying ownership, so any authenticated user could read any other member's claim by changing the id. | CWE-639 | `claims.web.ClaimDetailController.getClaim` (`GET /claims/{id}`) | ✅ Fixed — after loading the claim, `getClaim` compares `claim.getMemberUserId()` to the authenticated `user.getUserId()`. Members may only view their own claims; ADMIN/ADJUSTER (`UserSession.canViewAllMembers()`) may view any. Cross-account reads are audited and then rejected as not-found (no existence leak). |
+| 2 | **SQL injection** — the claims and billing status filters built SQL by string concatenation. | CWE-89 | `claims.repository.ClaimRepository.searchByStatus`, `billing.repository.BillingRepository.searchInvoices` | ✅ Fixed — both queries now use `PreparedStatement` with `member_user_id` and `status` bound via `setLong`/`setString`. |
+| 3 | **Missing authentication for critical function** — the entire `/admin/**` area was not behind the auth interceptor; `/admin/users` returns users and `/admin/reconciliation/run` triggers a financial batch. | CWE-306 | `admin.web.AdminController`, `common.web.WebConfig` | ✅ Fixed — `/admin/**` is now covered by `AuthInterceptor` (authentication required), and every admin handler enforces the ADMIN role via `requireAdmin(...)` (403 otherwise). |
+| 4 | **Hardcoded credentials/secrets** — integration API key, fraud shared secret, and admin bootstrap password were hardcoded fallbacks. | CWE-798 | `src/main/resources/application.properties`, `common.config.AppConfig` | ✅ Fixed — these are injected from environment variables (`AEGIS_PAYMENT_GATEWAY_API_KEY`, `AEGIS_FRAUD_SHARED_SECRET`, `AEGIS_ADMIN_BOOTSTRAP_PASSWORD`) with no insecure defaults; startup fails fast if a required secret is absent. |
+| 5 | **Weak password hashing** — passwords were stored as unsalted MD5. | CWE-327, CWE-916 | `auth.service.PasswordHasher` | ✅ Fixed — new passwords use salted, adaptive PBKDF2-HMAC-SHA256 in a self-describing format. `matches(...)` still verifies legacy MD5 hashes so pre-existing accounts (see migration note below) can log in; `isLegacyHash(...)` flags hashes needing upgrade. |
+| 6 | **Path traversal** — the document download endpoint joined a caller-supplied filename to the storage root with no containment check. | CWE-22 | `document.service.DocumentService.readDocument`, `document.web.DocumentController` | ✅ Fixed — `DocumentService.resolveWithinRoot(...)` normalizes the path and rejects absolute paths and any name that escapes the storage root; the controller maps traversal attempts to 400 and missing files to 404. |
+| 7 | **Known-vulnerable dependencies** — `log4j-core` / `log4j-api` 2.14.1 (Log4Shell, CVE-2021-44228) and `commons-collections` 3.2.1 (CVE-2015-7501) are pinned so the CI dependency audit has something concrete to flag. | — | `pom.xml`, `integration.NotificationService`, `batch.ReconciliationService` | ⛔ Intentionally retained (out of scope for this remediation). |
 
 The empty `owasp-suppressions.xml` is intentional: the audit is meant to fail loudly. Do not add
 suppressions to make it pass.
+
+### Migration note for item 5 (existing MD5 hashes)
+
+Stored MD5 hashes (including the seeded users in `db/seed.sql`) cannot be converted to PBKDF2
+without the cleartext password. To preserve access, `PasswordHasher.matches(...)` continues to
+verify legacy 32-hex MD5 hashes. Because the cleartext is available during a successful login,
+the recommended migration is to transparently re-hash and persist with `PasswordHasher.hash(...)`
+on next login (`isLegacyHash(...)` identifies which stored hashes still need upgrading). Seed
+fixtures can also be regenerated with PBKDF2 values to remove MD5 entirely.
 
 ## Intentional performance / cost problems
 

@@ -16,15 +16,11 @@ import javax.servlet.http.HttpServletRequest;
 /**
  * Serves the claim-detail page: {@code GET /claims/{id}}.
  *
- * <p>SECURITY (INTENTIONAL — THE FLAGSHIP BUG — see REVIEW.md):
- * {@link #getClaim} loads the claim by id and renders it WITHOUT verifying that
- * the claim belongs to the authenticated member. Any logged-in user can read any
- * other member's claim by changing the id in the URL.
- * CWE-639: Authorization Bypass Through User-Controlled Key (IDOR).
- *
- * <p>The correct behavior would be: if the current user is not an ADJUSTER/ADMIN,
- * reject the request when {@code claim.getMemberUserId() != user.getUserId()}.
- * That check is deliberately absent. Do NOT add it unless that is the task.
+ * <p>SECURITY (CWE-639): {@link #getClaim} enforces per-record authorization.
+ * After loading the claim it verifies ownership: a member may only view their own
+ * claims, while privileged roles (ADMIN/ADJUSTER) may view any claim. Unauthorized
+ * cross-account reads are audited and then rejected with a not-found response so the
+ * endpoint does not leak the existence of other members' claims.
  */
 @Controller
 public class ClaimDetailController {
@@ -43,6 +39,9 @@ public class ClaimDetailController {
                            HttpServletRequest request,
                            Model model) {
         UserSession user = CurrentUser.from(request);
+        if (user == null) {
+            return "redirect:/login";
+        }
 
         Claim claim = claimService.getClaim(id);
         if (claim == null) {
@@ -50,9 +49,8 @@ public class ClaimDetailController {
             return "claims/not-found";
         }
 
-        // Access is logged, but NOT authorized. The audit row is exactly what the
-        // production alert in demo/trigger-artifact.md is built from: it shows a
-        // user reading a claim that belongs to a different member.
+        // Access is logged before the authorization decision so cross-account
+        // attempts are captured for the audit trail / alerting.
         boolean crossAccount = claim.getMemberUserId() != user.getUserId();
         auditService.record(user.getUserId(), "CLAIM_VIEW", "claim",
                 String.valueOf(id),
@@ -61,8 +59,14 @@ public class ClaimDetailController {
                           + " owner " + claim.getMemberUserId()
                         : "self read");
 
-        // MISSING AUTHORIZATION CHECK (CWE-639): the claim is returned regardless
-        // of ownership. See class Javadoc.
+        // Authorization check (CWE-639): members may only view their own claims;
+        // ADMIN/ADJUSTER may view any. Reject cross-account reads as not-found so
+        // the endpoint does not leak the existence of other members' claims.
+        if (crossAccount && !user.canViewAllMembers()) {
+            model.addAttribute("user", user);
+            return "claims/not-found";
+        }
+
         model.addAttribute("user", user);
         model.addAttribute("claim", claim);
         return "claims/detail";

@@ -10,14 +10,20 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Paths;
 
 /**
  * Document download endpoint.
  *
- * <p>SECURITY (INTENTIONAL — see REVIEW.md): the {@code file} parameter is passed
- * straight to {@link DocumentService#readDocument(String)}, which is vulnerable to
- * path traversal (CWE-22). Example: {@code GET /documents/download?file=../../etc/passwd}.
+ * <p>SECURITY (CWE-22): the {@code file} parameter is validated by
+ * {@link DocumentService#readDocument(String)}, which rejects any name that
+ * escapes the storage root. Rejected traversal attempts return {@code 400 Bad
+ * Request}; missing files return {@code 404 Not Found}. The download filename in
+ * the response header is reduced to its base name so the caller-supplied path
+ * cannot be reflected verbatim.
  */
 @Controller
 public class DocumentController {
@@ -31,10 +37,19 @@ public class DocumentController {
 
     @GetMapping("/documents/download")
     @ResponseBody
-    public ResponseEntity<byte[]> download(@RequestParam("file") String file) throws IOException {
-        byte[] content = documentService.readDocument(file);
+    public ResponseEntity<byte[]> download(@RequestParam("file") String file) {
+        byte[] content;
+        try {
+            content = documentService.readDocument(file);
+        } catch (NoSuchFileException | FileNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IOException e) {
+            // Containment/validation failure (e.g. path traversal attempt).
+            return ResponseEntity.badRequest().build();
+        }
+        String downloadName = Paths.get(file).getFileName().toString();
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloadName + "\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(content);
     }
