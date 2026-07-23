@@ -39,6 +39,19 @@ public class UserRepository {
         }
     }
 
+    /** Replaces a user's stored password hash (used to migrate legacy hashes to BCrypt). */
+    public void updatePasswordHash(long id, String passwordHash) {
+        String sql = "UPDATE users SET password_hash = ? WHERE id = ?";
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, passwordHash);
+            ps.setLong(2, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("updatePasswordHash failed", e);
+        }
+    }
+
     public User findById(long id) {
         String sql = "SELECT id, username, password_hash, full_name, email, role "
                 + "FROM users WHERE id = ?";
