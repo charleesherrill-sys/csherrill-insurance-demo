@@ -24,10 +24,14 @@ public class AdminService {
         this.db = db;
     }
 
-    /** Lists all users, including their (MD5) password hashes and roles. */
+    /**
+     * Lists all users and their roles. Password hashes are deliberately NOT
+     * selected or returned — credential material must never be exposed through
+     * an API response.
+     */
     public List<Map<String, Object>> listAllUsers() {
         List<Map<String, Object>> out = new ArrayList<>();
-        String sql = "SELECT id, username, full_name, email, role, password_hash FROM users ORDER BY id";
+        String sql = "SELECT id, username, full_name, email, role FROM users ORDER BY id";
         try (Connection c = db.getConnection();
              Statement st = c.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
@@ -38,7 +42,6 @@ public class AdminService {
                 row.put("fullName", rs.getString("full_name"));
                 row.put("email", rs.getString("email"));
                 row.put("role", rs.getString("role"));
-                row.put("passwordHash", rs.getString("password_hash"));
                 out.add(row);
             }
         } catch (SQLException e) {
