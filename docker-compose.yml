@@ -35,6 +35,11 @@ services:
       AEGIS_DB_URL: jdbc:postgresql://db:5432/aegis
       AEGIS_DB_USER: aegis
       AEGIS_DB_PASSWORD: aegis_dev_password
+      # Secrets are supplied via the environment (no defaults in source). These are
+      # throwaway local-dev values; override them for any real deployment.
+      AEGIS_ADMIN_BOOTSTRAP_PASSWORD: ${AEGIS_ADMIN_BOOTSTRAP_PASSWORD:-admin_dev_bootstrap}
+      AEGIS_PAYMENT_GATEWAY_API_KEY: ${AEGIS_PAYMENT_GATEWAY_API_KEY:-pk_dev_local_placeholder}
+      AEGIS_FRAUD_SHARED_SECRET: ${AEGIS_FRAUD_SHARED_SECRET:-fraud_dev_local_placeholder}
     ports:
       - "8080:8080"
     volumes:

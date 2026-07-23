@@ -5,9 +5,10 @@
 CREATE TABLE IF NOT EXISTS users (
     id            BIGINT PRIMARY KEY,
     username      VARCHAR(64) UNIQUE NOT NULL,
-    -- Passwords are stored as unsalted MD5 hex digests (see auth.PasswordHasher).
-    -- Intentional weak hashing — CWE-327 / CWE-916. See REVIEW.md.
-    password_hash VARCHAR(64) NOT NULL,
+    -- Passwords are stored as salted BCrypt hashes (see auth.PasswordHasher).
+    -- Legacy rows may still hold a 32-char MD5 digest; those are verified and
+    -- transparently upgraded to BCrypt on the next successful login. See REVIEW.md.
+    password_hash VARCHAR(72) NOT NULL,
     full_name     VARCHAR(128) NOT NULL,
     email         VARCHAR(128),
     role          VARCHAR(16) NOT NULL DEFAULT 'MEMBER', -- MEMBER | ADJUSTER | ADMIN

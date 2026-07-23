@@ -49,22 +49,24 @@ public class BillingRepository {
     }
 
     /**
-     * Finds invoices by member with a free-text status filter.
+     * Finds invoices for a member with a status filter typed by the user.
      *
-     * <p>SECURITY (INTENTIONAL — see REVIEW.md): {@code status} is concatenated
-     * straight into the query (CWE-89, SQL Injection). Do NOT parameterize unless
-     * that is the explicit task.
+     * <p>The {@code memberUserId} and {@code status} values are bound as query
+     * parameters (CWE-89 remediation), so user-supplied input cannot alter the
+     * query structure.
      */
     public List<Invoice> searchInvoices(long memberUserId, String status) {
         String sql = "SELECT " + INVOICE_COLUMNS + " FROM invoices "
-                + "WHERE member_user_id = " + memberUserId
-                + " AND status = '" + status + "' ORDER BY created_at DESC";
+                + "WHERE member_user_id = ? AND status = ? ORDER BY created_at DESC";
         List<Invoice> out = new ArrayList<>();
         try (Connection c = db.getConnection();
-             Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                out.add(mapInvoice(rs));
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, memberUserId);
+            ps.setString(2, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    out.add(mapInvoice(rs));
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException("searchInvoices failed", e);

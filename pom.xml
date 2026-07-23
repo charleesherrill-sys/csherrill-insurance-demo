@@ -79,6 +79,13 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
+        <!-- Salted, adaptive password hashing (BCrypt). Standalone crypto module;
+             does not pull in the servlet security filter chain. -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
