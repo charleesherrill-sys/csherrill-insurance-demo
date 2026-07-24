@@ -79,6 +79,15 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
+        <!-- Provides BCryptPasswordEncoder for adaptive password hashing (CWE-327/916 fix).
+             spring-security-crypto is a standalone crypto module: it does NOT enable the
+             Spring Security servlet filter chain, so the existing cookie/session auth and
+             AuthInterceptor keep working unchanged. -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

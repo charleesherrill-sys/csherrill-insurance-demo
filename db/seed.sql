@@ -3,21 +3,22 @@
 -- (CWE-639) is demonstrable: e.g. member "bhopkins" (id 4471) can open claim
 -- 90233 which belongs to "amorgan" (id 5583). See demo/trigger-artifact.md.
 --
--- Passwords are unsalted MD5 (CWE-327). Cleartext for the demo:
+-- Passwords are salted BCrypt hashes (auth.PasswordHasher). Cleartext for the demo:
 --   admin / admin123        (ADMIN)
 --   jadjuster / letmein     (ADJUSTER)
 --   amorgan / password      (MEMBER, id 5583)
 --   bhopkins / password     (MEMBER, id 4471)
 --   cwright / password      (MEMBER, id 6001)
 --   dpatel / claims2015     (MEMBER, id 6002)
+-- (BCrypt is salted, so each row's hash differs even where the cleartext matches.)
 
 INSERT INTO users (id, username, password_hash, full_name, email, role) VALUES
-    (1,    'admin',     '0192023a7bbd73250516f069df18b500', 'System Administrator', 'admin@aegis.example',    'ADMIN'),
-    (2,    'jadjuster', '0d107d09f5bbe40cade3de5c71e9e9b7', 'Jordan Adjuster',      'jordan@aegis.example',   'ADJUSTER'),
-    (5583, 'amorgan',   '5f4dcc3b5aa765d61d8327deb882cf99', 'Alex Morgan',          'alex.morgan@example.com','MEMBER'),
-    (4471, 'bhopkins',  '5f4dcc3b5aa765d61d8327deb882cf99', 'Bailey Hopkins',       'bailey.h@example.com',   'MEMBER'),
-    (6001, 'cwright',   '5f4dcc3b5aa765d61d8327deb882cf99', 'Casey Wright',         'casey.w@example.com',    'MEMBER'),
-    (6002, 'dpatel',    'aa70c2ca310d1f894a5afab32fc53bae', 'Devan Patel',          'devan.p@example.com',    'MEMBER');
+    (1,    'admin',     '$2a$10$8Dvs/2yXHUvSBTgBWZGnP.htPBi//LSgtKuWFy9aN1gQ6czmy1oaq', 'System Administrator', 'admin@aegis.example',    'ADMIN'),
+    (2,    'jadjuster', '$2a$10$qzJypEIVvqJiLhspiEm7nuIjcpGYwweDRdnTZIO11palHhtqsrg52', 'Jordan Adjuster',      'jordan@aegis.example',   'ADJUSTER'),
+    (5583, 'amorgan',   '$2a$10$4xHi1urQbsq5EqLlMXDAIuU.ZfiQvNM2k2m2s0ntjiHscghLamgt6', 'Alex Morgan',          'alex.morgan@example.com','MEMBER'),
+    (4471, 'bhopkins',  '$2a$10$HJrI9x5JLp4Zg806Ry76eOfJwcBIY7LRPKxuGqzoP02QZ6UB5Jnmy', 'Bailey Hopkins',       'bailey.h@example.com',   'MEMBER'),
+    (6001, 'cwright',   '$2a$10$M8kL38kdIcy7zmwiIOv/KeIy5DB/6JGWw2JFFENHXjDQf1M1KevRq', 'Casey Wright',         'casey.w@example.com',    'MEMBER'),
+    (6002, 'dpatel',    '$2a$10$59KCjCzOztmbrGfVKrn/..2ZXHc2QA2wTJh9y0IqGtQnEa/k8Lgvy', 'Devan Patel',          'devan.p@example.com',    'MEMBER');
 
 INSERT INTO policies (id, policy_number, holder_user_id, product, status, premium_cents, effective_date, end_date) VALUES
     (7001, 'POL-2019-5583', 5583, 'PPO Family Health',       'ACTIVE', 48200, DATE '2019-01-01', NULL),

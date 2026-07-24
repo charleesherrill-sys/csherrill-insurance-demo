@@ -56,6 +56,19 @@ public class UserRepository {
         }
     }
 
+    /** Persists a new password hash for a user (used to upgrade legacy hashes). */
+    public void updatePasswordHash(long id, String passwordHash) {
+        String sql = "UPDATE users SET password_hash = ? WHERE id = ?";
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, passwordHash);
+            ps.setLong(2, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("updatePasswordHash failed", e);
+        }
+    }
+
     private User map(ResultSet rs) throws SQLException {
         User u = new User();
         u.setId(rs.getLong("id"));

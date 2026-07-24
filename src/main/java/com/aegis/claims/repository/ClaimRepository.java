@@ -71,22 +71,23 @@ public class ClaimRepository {
     /**
      * Searches claims with an optional status filter typed by the user.
      *
-     * <p>SECURITY (INTENTIONAL — see REVIEW.md): the {@code status} value is
-     * concatenated directly into the SQL string (CWE-89, SQL Injection). A value
-     * like {@code "' OR '1'='1"} returns every member's claims. Do NOT parameterize
-     * this unless that is the explicit task.
+     * <p>SECURITY: both the member id and the {@code status} value are bound as
+     * query parameters (CWE-89 fix). A value like {@code "' OR '1'='1"} is treated
+     * as a literal status and simply matches no rows instead of leaking data.
      */
     public List<Claim> searchByStatus(long memberUserId, String status) {
         String sql = "SELECT " + BASE_COLUMNS + " FROM claims "
-                + "WHERE member_user_id = " + memberUserId
-                + " AND status = '" + status + "' "
+                + "WHERE member_user_id = ? AND status = ? "
                 + "ORDER BY submitted_at DESC";
         List<Claim> out = new ArrayList<>();
         try (Connection c = db.getConnection();
-             Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                out.add(map(rs));
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, memberUserId);
+            ps.setString(2, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    out.add(map(rs));
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException("claim searchByStatus failed", e);

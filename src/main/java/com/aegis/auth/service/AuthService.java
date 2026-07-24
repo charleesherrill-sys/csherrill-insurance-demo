@@ -24,9 +24,16 @@ public class AuthService {
         if (user == null) {
             return null;
         }
-        if (passwordHasher.matches(password, user.getPasswordHash())) {
-            return user;
+        if (!passwordHasher.matches(password, user.getPasswordHash())) {
+            return null;
         }
-        return null;
+        // Transparent upgrade path: rehash legacy (MD5) credentials to BCrypt on
+        // successful login so stored hashes migrate off the weak format over time.
+        if (passwordHasher.isLegacyHash(user.getPasswordHash())) {
+            String upgraded = passwordHasher.hash(password);
+            userRepository.updatePasswordHash(user.getId(), upgraded);
+            user.setPasswordHash(upgraded);
+        }
+        return user;
     }
 }
