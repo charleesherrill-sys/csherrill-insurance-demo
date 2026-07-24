@@ -15,13 +15,11 @@ import java.util.Map;
 /**
  * Admin portal.
  *
- * <p>SECURITY (INTENTIONAL — see REVIEW.md): the whole {@code /admin/**} area is
- * NOT registered with {@code AuthInterceptor} (see WebConfig), so every endpoint
- * here is reachable with no authentication and no role check. In particular
- * {@link #listUsers()} dumps all users and their password hashes, and
- * {@link #runReconciliation()} triggers a financial batch job.
- * CWE-306: Missing Authentication for Critical Function. Do NOT add auth here
- * unless that is the explicit task.
+ * <p>SECURITY: the whole {@code /admin/**} area is registered with
+ * {@code AuthInterceptor} (see WebConfig) and requires an authenticated ADMIN
+ * (CWE-306 fix). {@link #listUsers()} no longer returns password hashes, and
+ * {@link #runReconciliation()} — which triggers a financial batch job — is
+ * reachable only by an administrator.
  */
 @Controller
 public class AdminController {
@@ -41,14 +39,14 @@ public class AdminController {
         return "admin/portal";
     }
 
-    /** Unauthenticated: returns all users and their password hashes as JSON. */
+    /** ADMIN only: returns all users and roles as JSON (no password hashes). */
     @GetMapping("/admin/users")
     @ResponseBody
     public List<Map<String, Object>> listUsers() {
         return adminService.listAllUsers();
     }
 
-    /** Unauthenticated: kicks off the financial reconciliation batch on demand. */
+    /** ADMIN only: kicks off the financial reconciliation batch on demand. */
     @PostMapping("/admin/reconciliation/run")
     @ResponseBody
     public ReconciliationService.ReconciliationResult runReconciliation() {

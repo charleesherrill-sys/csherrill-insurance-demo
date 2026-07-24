@@ -18,8 +18,8 @@ import java.util.List;
  * Lists the current member's claims (the claims-list page).
  *
  * <p>This page is one half of the flagship N+1 performance issue (see
- * {@link ClaimService}). The optional {@code status} filter is passed straight to
- * a string-concatenated query (SQL injection, CWE-89 — see the repository).
+ * {@link ClaimService}). The optional {@code status} filter is passed to a
+ * parameterized query in the repository (CWE-89 fix).
  */
 @Controller
 public class ClaimsController {

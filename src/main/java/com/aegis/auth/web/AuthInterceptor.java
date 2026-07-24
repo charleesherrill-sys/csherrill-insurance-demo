@@ -14,10 +14,10 @@ import javax.servlet.http.HttpServletResponse;
  * Establishes the current user for each request from the {@code AEGIS_SESSION}
  * cookie and redirects unauthenticated users to the login page.
  *
- * <p>IMPORTANT: this interceptor only proves <em>authentication</em> (you are
- * logged in). It does NOT enforce per-record <em>authorization</em>. Ownership
- * checks are the responsibility of individual controllers/services — and the
- * claim-detail endpoint is missing that check (CWE-639). See REVIEW.md.
+ * <p>This interceptor enforces <em>authentication</em> for every intercepted path
+ * and, for the {@code /admin/**} area, coarse-grained <em>role</em> authorization
+ * (ADMIN only). Per-record ownership authorization (e.g. claim detail, CWE-639)
+ * remains the responsibility of individual controllers/services.
  */
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
@@ -36,8 +36,23 @@ public class AuthInterceptor implements HandlerInterceptor {
             response.sendRedirect(request.getContextPath() + "/login");
             return false;
         }
+        // Role-based access for the admin area (CWE-306): authenticated but
+        // non-admin users are refused with 403.
+        if (isAdminPath(request) && !session.isAdmin()) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Admin access required");
+            return false;
+        }
         request.setAttribute(CurrentUser.ATTRIBUTE, session);
         return true;
+    }
+
+    private boolean isAdminPath(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String context = request.getContextPath();
+        if (context != null && !context.isEmpty() && path.startsWith(context)) {
+            path = path.substring(context.length());
+        }
+        return path.equals("/admin") || path.startsWith("/admin/");
     }
 
     private UserSession resolveSession(HttpServletRequest request) {

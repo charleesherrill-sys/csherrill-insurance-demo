@@ -22,7 +22,7 @@ import java.util.List;
  *
  * <p>This page is the billing half of the flagship N+1 issue (see
  * {@link BillingService}). The optional {@code status} filter reaches a
- * string-concatenated query (CWE-89).
+ * parameterized query in the repository (CWE-89 fix).
  */
 @Controller
 public class BillingController {

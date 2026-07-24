@@ -8,18 +8,33 @@ test; leave the rest in place.
 
 ## Intentional security weaknesses
 
+The following are still seeded on purpose and remain in place:
+
 | # | Issue | CWE | Where |
 |---|-------|-----|-------|
-| 1 | **Broken access control / IDOR (flagship)** — the claim-detail endpoint loads a claim by id and renders it without verifying ownership, so any authenticated user can read any other member's claim by changing the id. | CWE-639 | `claims.web.ClaimDetailController.getClaim` (`GET /claims/{id}`) |
-| 2 | **SQL injection** — the claims and billing status filters build SQL by string concatenation. | CWE-89 | `claims.repository.ClaimRepository.searchByStatus`, `billing.repository.BillingRepository.searchInvoices` |
-| 3 | **Missing authentication for critical function** — the entire `/admin/**` area is not behind the auth interceptor; `/admin/users` dumps users + password hashes and `/admin/reconciliation/run` triggers a financial batch. | CWE-306 | `admin.web.AdminController`, `common.web.WebConfig` (admin paths deliberately not intercepted) |
 | 4 | **Hardcoded credentials/secrets** — integration API key, fraud shared secret, and admin bootstrap password are hardcoded fallbacks. | CWE-798 | `src/main/resources/application.properties`, `common.config.AppConfig` |
-| 5 | **Weak password hashing** — passwords are stored as unsalted MD5. | CWE-327, CWE-916 | `auth.service.PasswordHasher` |
 | 6 | **Path traversal** — the document download endpoint joins a caller-supplied filename to the storage root with no containment check. | CWE-22 | `document.service.DocumentService.readDocument`, `document.web.DocumentController` |
 | 7 | **Known-vulnerable dependencies** — `log4j-core` / `log4j-api` 2.14.1 (Log4Shell, CVE-2021-44228) and `commons-collections` 3.2.1 (CVE-2015-7501) are pinned so the CI dependency audit has something concrete to flag. | — | `pom.xml`, `integration.NotificationService`, `batch.ReconciliationService` |
 
 The empty `owasp-suppressions.xml` is intentional: the audit is meant to fail loudly. Do not add
 suppressions to make it pass.
+
+## Resolved security findings (auth-flow hardening)
+
+These previously-seeded weaknesses have been **fixed** as an explicit hardening task. They should
+no longer be treated as intentional artifacts.
+
+| # | Issue | CWE | Fix |
+|---|-------|-----|-----|
+| 1 | **Broken access control / IDOR (flagship)** — the claim-detail endpoint returned a claim regardless of ownership. | CWE-639 | `claims.web.ClaimDetailController.getClaim` now allows access only when the caller owns the claim or `UserSession.canViewAllMembers()` (ADJUSTER/ADMIN) is true; otherwise it returns HTTP 403 + `claims/not-authorized` and audits a `CLAIM_VIEW_DENIED`. The same ownership/role check was added to the `POST /claims/{id}/adjudicate` action in `ClaimIntakeController`. |
+| 2 | **SQL injection** — the claims and billing status filters built SQL by string concatenation. | CWE-89 | `ClaimRepository.searchByStatus` and `BillingRepository.searchInvoices` now bind the member id and status via `PreparedStatement` parameters. |
+| 3 | **Missing authentication for critical function** — the entire `/admin/**` area was unauthenticated. | CWE-306 | `common.web.WebConfig` now registers `/admin/**` with the `AuthInterceptor`, which enforces ADMIN-only access for admin paths. `AdminService.listAllUsers` no longer returns password hashes. |
+| 5 | **Weak password hashing** — passwords were stored as unsalted MD5. | CWE-327, CWE-916 | `auth.service.PasswordHasher` now uses salted BCrypt (`spring-security-crypto`). Legacy MD5 hashes still verify and are transparently upgraded to BCrypt on the next successful login (`AuthService`); `db/seed.sql` ships BCrypt hashes. |
+| — | **Session management** — in-memory sessions never expired and the cookie was not `Secure`. | CWE-613, CWE-614, CWE-384 | `SessionManager` enforces idle (30 min) and absolute (8 h) timeouts and mints a fresh session id per login (fixation protection); `LoginController` sets the `AEGIS_SESSION` cookie `Secure` (configurable via `aegis.session.cookie.secure`, default true) in addition to `HttpOnly`. |
+
+Regression tests live under `src/test/java/com/aegis/auth` (`PasswordHasherTest`, `AuthServiceTest`,
+`AuthInterceptorTest`, `SessionManagerTest`) and `src/test/java/com/aegis/claims/web`
+(`ClaimDetailControllerTest`).
 
 ## Intentional performance / cost problems
 
@@ -52,8 +67,9 @@ These are the "losing money" angle. Do not optimize them away during general rev
 The headline scenario combines a **security fix and a cost/performance fix** that span multiple
 files:
 
-1. Enforce ownership/authorization on `GET /claims/{id}` (fix the IDOR, item 1 above), and
-2. Eliminate the N+1 queries on the claims-list and billing paths.
+1. Enforce ownership/authorization on `GET /claims/{id}` (fix the IDOR) — **now resolved**, see
+   "Resolved security findings" above, and
+2. Eliminate the N+1 queries on the claims-list and billing paths (still open).
 
 A good fix touches the auth/authorization layer, `ClaimService`/`ClaimDetailController`, the
 billing/claims repositories, and adds regression tests that prove both the access-control fix and
