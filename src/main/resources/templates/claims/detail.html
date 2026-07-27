@@ -39,7 +39,8 @@
         </table>
     </div>
 
-    <div class="card" th:if="${claim.status == 'SUBMITTED' or claim.status == 'VALIDATED'}">
+    <div class="card" th:if="${(claim.status == 'SUBMITTED' or claim.status == 'VALIDATED')
+                              and (user.canViewAllMembers() or claim.memberUserId == user.userId)}">
         <h2>Actions</h2>
         <form method="post" th:action="@{'/claims/' + ${claim.id} + '/adjudicate'}">
             <button class="btn" type="submit">Validate &amp; adjudicate</button>
