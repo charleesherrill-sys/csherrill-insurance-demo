@@ -236,7 +236,7 @@ git fetch origin && git checkout <devin-branch> && docker compose up --build -d
 | `docker compose up --build` → `openjdk:8-jre-slim: not found` | Old base image removed from Docker Hub. Use this branch's `Dockerfile` (`eclipse-temurin:8-jre`). |
 | `ALTER SYSTEM cannot run inside a transaction block` | Run `ALTER SYSTEM` and `pg_reload_conf()` as two separate `psql -c` calls. |
 | `mvn clean package` red on `ReconciliationTimingTest` | Intentional flake (~50 % in our runs). Re-run; do not let Devin "fix" it unless asked. |
-| Audit fails with `403 Forbidden` from nvd.nist.gov | Network-restricted environment; run on a network that can reach NVD (or set `NVD_API_KEY`). Failure is expected either way, but the CVE report only exists in the first case. |
+| Audit fails with `403 Forbidden` from nvd.nist.gov | Seen both locally and in the GitHub Actions `dependency-audit` job (PR #14): NVD's legacy 1.1 feed now rejects unauthenticated downloads. Failure is expected either way, but the CVE report only exists if the plugin can reach NVD (configure an `nvdApiKey` in the `audit` profile if you want the real Log4Shell report). |
 | Devin can't push to `csherrill-demo-repo` | Devin's GitHub app isn't installed there. Fork it or have Charlee grant access. |
 | Stale `devin/*` branches | Previous runs; prune before the demo. |
 | Host Java is 11, repo targets 8 | `mvn clean package` compiles fine on 11 (`release 8`); the Docker build uses real Java 8. |
