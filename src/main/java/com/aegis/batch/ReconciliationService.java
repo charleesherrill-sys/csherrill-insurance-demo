@@ -20,6 +20,9 @@ import java.util.List;
 /**
  * Nightly reconciliation: walks open invoices and their payments, recomputes
  * expected amounts, and records a run summary in {@code reconciliation_runs}.
+ *
+ * <p>Uses a small {@link LRUMap} object cache. Also re-implements the adjudication
+ * "approved amount" math (duplicated business logic — see REVIEW.md).
  */
 @Service
 public class ReconciliationService {
@@ -65,7 +68,10 @@ public class ReconciliationService {
         return new ReconciliationResult(status, matched, unmatched);
     }
 
-    /** Calculates the approved amount used by reconciliation. */
+    /**
+     * Duplicate of AdjudicationService's approved-amount calculation. Kept here so
+     * the batch can independently value a claim (intentional duplication).
+     */
     long expectedApprovedCents(long claimId) {
         Claim claim = claimRepository.findById(claimId);
         if (claim == null) {

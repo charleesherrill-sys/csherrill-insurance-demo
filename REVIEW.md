@@ -7,9 +7,9 @@ place unless a task explicitly targets them.
 
 ## Remediated security findings
 
-All seven security findings below were remediated on branch
-`devin/1790108252-remediate-review-vulns`; the corresponding pull request should
-preserve these fixes.
+All seven security findings below have been remediated, each with a regression test under
+`src/test/java`. Do not reintroduce them; the "Issue" column describes the original weakness for
+context.
 
 | # | Issue | CWE | Where | Status |
 |---|-------|-----|-------|--------|
