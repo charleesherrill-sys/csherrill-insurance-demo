@@ -7,7 +7,7 @@ import com.aegis.claims.model.Claim;
 import com.aegis.claims.model.ClaimLine;
 import com.aegis.claims.repository.ClaimRepository;
 import com.aegis.common.db.Database;
-import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.collections4.map.LRUMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,9 +21,8 @@ import java.util.List;
  * Nightly reconciliation: walks open invoices and their payments, recomputes
  * expected amounts, and records a run summary in {@code reconciliation_runs}.
  *
- * <p>Uses commons-collections {@link LRUMap} (the pinned vulnerable dependency)
- * as a small object cache. Also re-implements the adjudication "approved amount"
- * math (duplicated business logic — see REVIEW.md).
+ * <p>Uses a small {@link LRUMap} object cache. Also re-implements the adjudication
+ * "approved amount" math (duplicated business logic — see REVIEW.md).
  */
 @Service
 public class ReconciliationService {
@@ -32,8 +31,7 @@ public class ReconciliationService {
     private final ClaimRepository claimRepository;
     private final Database db;
 
-    @SuppressWarnings("unchecked")
-    private final LRUMap invoiceCache = new LRUMap(256);
+    private final LRUMap<Long, Invoice> invoiceCache = new LRUMap<>(256);
 
     @Autowired
     public ReconciliationService(BillingRepository billingRepository,
@@ -44,7 +42,6 @@ public class ReconciliationService {
         this.db = db;
     }
 
-    @SuppressWarnings("unchecked")
     public ReconciliationResult run() {
         List<Invoice> open = billingRepository.findAllOpenInvoices();
         int matched = 0;

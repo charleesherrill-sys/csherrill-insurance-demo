@@ -1,6 +1,8 @@
 package com.aegis.admin.web;
 
 import com.aegis.admin.service.AdminService;
+import com.aegis.auth.service.UserSession;
+import com.aegis.auth.web.CurrentUser;
 import com.aegis.batch.ReconciliationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -8,21 +10,14 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Admin portal.
- *
- * <p>SECURITY (INTENTIONAL — see REVIEW.md): the whole {@code /admin/**} area is
- * NOT registered with {@code AuthInterceptor} (see WebConfig), so every endpoint
- * here is reachable with no authentication and no role check. In particular
- * {@link #listUsers()} dumps all users and their password hashes, and
- * {@link #runReconciliation()} triggers a financial batch job.
- * CWE-306: Missing Authentication for Critical Function. Do NOT add auth here
- * unless that is the explicit task.
- */
+/** Admin portal. */
 @Controller
 public class AdminController {
 
@@ -36,22 +31,30 @@ public class AdminController {
     }
 
     @GetMapping("/admin")
-    public String portal(Model model) {
+    public String portal(HttpServletRequest request, Model model) {
+        requireAdmin(request);
         model.addAttribute("claimCounts", adminService.claimCountsByStatus());
         return "admin/portal";
     }
 
-    /** Unauthenticated: returns all users and their password hashes as JSON. */
     @GetMapping("/admin/users")
     @ResponseBody
-    public List<Map<String, Object>> listUsers() {
+    public List<Map<String, Object>> listUsers(HttpServletRequest request) {
+        requireAdmin(request);
         return adminService.listAllUsers();
     }
 
-    /** Unauthenticated: kicks off the financial reconciliation batch on demand. */
     @PostMapping("/admin/reconciliation/run")
     @ResponseBody
-    public ReconciliationService.ReconciliationResult runReconciliation() {
+    public ReconciliationService.ReconciliationResult runReconciliation(HttpServletRequest request) {
+        requireAdmin(request);
         return reconciliationService.run();
+    }
+
+    private void requireAdmin(HttpServletRequest request) {
+        UserSession user = CurrentUser.from(request);
+        if (user == null || !user.isAdmin()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "admin role required");
+        }
     }
 }

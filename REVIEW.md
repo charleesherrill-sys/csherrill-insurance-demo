@@ -1,25 +1,27 @@
 # Review Guidelines
 
-This is a **demonstration codebase**. The weaknesses below are seeded on purpose so the repo can
-be used to explore security review, performance analysis, and legacy modernization. Every item
-here is intentional and should **not** be flagged as an accidental bug or "fixed" during a general
-cleanup. When a task explicitly targets one of these, fix that specific issue and add a regression
-test; leave the rest in place.
+This is a **demonstration codebase**. The findings below document security remediation and
+intentional performance/testing patterns so the repo can be used to explore security review,
+performance analysis, and legacy modernization. Leave the performance and testing patterns in
+place unless a task explicitly targets them.
 
-## Intentional security weaknesses
+## Remediated security findings
 
-| # | Issue | CWE | Where |
-|---|-------|-----|-------|
-| 1 | **Broken access control / IDOR (flagship)** — the claim-detail endpoint loads a claim by id and renders it without verifying ownership, so any authenticated user can read any other member's claim by changing the id. | CWE-639 | `claims.web.ClaimDetailController.getClaim` (`GET /claims/{id}`) |
-| 2 | **SQL injection** — the claims and billing status filters build SQL by string concatenation. | CWE-89 | `claims.repository.ClaimRepository.searchByStatus`, `billing.repository.BillingRepository.searchInvoices` |
-| 3 | **Missing authentication for critical function** — the entire `/admin/**` area is not behind the auth interceptor; `/admin/users` dumps users + password hashes and `/admin/reconciliation/run` triggers a financial batch. | CWE-306 | `admin.web.AdminController`, `common.web.WebConfig` (admin paths deliberately not intercepted) |
-| 4 | **Hardcoded credentials/secrets** — integration API key, fraud shared secret, and admin bootstrap password are hardcoded fallbacks. | CWE-798 | `src/main/resources/application.properties`, `common.config.AppConfig` |
-| 5 | **Weak password hashing** — passwords are stored as unsalted MD5. | CWE-327, CWE-916 | `auth.service.PasswordHasher` |
-| 6 | **Path traversal** — the document download endpoint joins a caller-supplied filename to the storage root with no containment check. | CWE-22 | `document.service.DocumentService.readDocument`, `document.web.DocumentController` |
-| 7 | **Known-vulnerable dependencies** — `log4j-core` / `log4j-api` 2.14.1 (Log4Shell, CVE-2021-44228) and `commons-collections` 3.2.1 (CVE-2015-7501) are pinned so the CI dependency audit has something concrete to flag. | — | `pom.xml`, `integration.NotificationService`, `batch.ReconciliationService` |
+All seven security findings below have been remediated, each with a regression test under
+`src/test/java`. Do not reintroduce them; the "Issue" column describes the original weakness for
+context.
 
-The empty `owasp-suppressions.xml` is intentional: the audit is meant to fail loudly. Do not add
-suppressions to make it pass.
+| # | Issue | CWE | Where | Status |
+|---|-------|-----|-------|--------|
+| 1 | **Broken access control / IDOR (flagship)** — the claim-detail endpoint loads a claim by id and renders it without verifying ownership, so any authenticated user can read any other member's claim by changing the id. | CWE-639 | `claims.web.ClaimDetailController.getClaim` (`GET /claims/{id}`) | Ownership check added while retaining audit logging. |
+| 2 | **SQL injection** — the claims and billing status filters build SQL by string concatenation. | CWE-89 | `claims.repository.ClaimRepository.searchByStatus`, `billing.repository.BillingRepository.searchInvoices` | Rewritten with `PreparedStatement` parameters. |
+| 3 | **Missing authentication for critical function** — the entire `/admin/**` area is not behind the auth interceptor; `/admin/users` dumps users + password hashes and `/admin/reconciliation/run` triggers a financial batch. | CWE-306 | `admin.web.AdminController`, `common.web.WebConfig` | `/admin/**` is behind `AuthInterceptor` and the handlers require `ADMIN`. |
+| 4 | **Hardcoded credentials/secrets** — integration API key, fraud shared secret, and admin bootstrap password are hardcoded fallbacks. | CWE-798 | `src/main/resources/application.properties`, `common.config.AppConfig` | Values are required environment variables. |
+| 5 | **Weak password hashing** — passwords are stored as unsalted MD5. | CWE-327, CWE-916 | `auth.service.PasswordHasher` | BCrypt is used and the seed hashes were refreshed. |
+| 6 | **Path traversal** — the document download endpoint joins a caller-supplied filename to the storage root with no containment check. | CWE-22 | `document.service.DocumentService.readDocument`, `document.web.DocumentController` | Canonical-path containment is enforced. |
+| 7 | **Known-vulnerable dependencies** — `log4j-core` / `log4j-api` 2.14.1 (Log4Shell, CVE-2021-44228) and `commons-collections` 3.2.1 (CVE-2015-7501) are pinned so the CI dependency audit has something concrete to flag. | — | `pom.xml`, `integration.NotificationService`, `batch.ReconciliationService` | Updated to log4j 2.23.1 and commons-collections4 4.4. |
+
+The audit is expected to pass; do not add suppressions.
 
 ## Intentional performance / cost problems
 

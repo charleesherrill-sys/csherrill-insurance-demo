@@ -27,8 +27,7 @@ Notes:
   seeds its RNG from the wall clock and fails intermittently. This is intentional (see REVIEW.md);
   do not stabilize it unless that is the task.
 - CI (`.github/workflows/ci.yml`) runs the build/tests against a Postgres service and runs the
-  dependency audit as a separate job. The dependency audit is **expected to fail** because of the
-  seeded vulnerable dependencies.
+  dependency audit as a separate job. The dependency audit is expected to pass.
 
 ## Architecture
 
@@ -37,8 +36,8 @@ Requests flow: Thymeleaf page -> `*.web.*Controller` -> `*.service.*Service` ->
 
 Authentication is a cookie session (`AEGIS_SESSION`) resolved by
 `com.aegis.auth.web.AuthInterceptor`, which sets the current user on the request. The interceptor
-enforces **authentication only**. Per-record **authorization** (ownership checks) is left to
-individual controllers/services.
+enforces authentication for protected routes, including `/admin/**`; the admin controller also
+requires the `ADMIN` role, while per-record authorization remains with individual controllers.
 
 ### Packages (`com.aegis.*`)
 
@@ -47,25 +46,25 @@ com.aegis
 ├── AegisApplication            # Spring Boot entry point (@EnableScheduling)
 ├── common
 │   ├── db/Database             # DataSource wrapper used by all repositories
-│   ├── config/AppConfig        # config holder (hardcoded fallback secrets)
+│   ├── config/AppConfig        # environment-backed configuration holder
 │   ├── audit/AuditService      # writes audit_log rows (claim views, etc.)
 │   └── web/WebConfig,          # interceptor registration
 │           DashboardController # post-login dashboard
 ├── auth                        # LoginController, AuthInterceptor, AuthService,
-│                               # SessionManager, PasswordHasher (MD5), UserRepository
+│                               # SessionManager, PasswordHasher (BCrypt), UserRepository
 ├── policy                      # PolicyController, PolicyService, PolicyRepository
 ├── claims                      # THE CORE SUBSYSTEM
 │   ├── web/ClaimsController         # GET /claims (list)
-│   ├── web/ClaimDetailController    # GET /claims/{id}  <-- flagship IDOR
+│   ├── web/ClaimDetailController    # GET /claims/{id}  <-- ownership-checked detail
 │   ├── web/ClaimIntakeController    # new-claim form, submit, adjudicate
 │   ├── service/ClaimService         # list/detail reads (N+1)
 │   ├── service/ClaimIntakeService   # submit + validate
 │   ├── service/AdjudicationService  # adjudicate + trigger payment
-│   └── repository/ClaimRepository   # raw JDBC (SQLi in searchByStatus)
+│   └── repository/ClaimRepository   # raw JDBC with parameterized status searches
 ├── billing                     # BillingController, BillingService, PaymentService,
-│                               # BillingRepository (SQLi in searchInvoices, N+1)
-├── document                    # DocumentController/Service (path traversal), DocumentSeeder
-├── admin                       # AdminController (unauthenticated), AdminService
+│                               # BillingRepository (parameterized searchInvoices, N+1)
+├── document                    # DocumentController/Service (contained paths), DocumentSeeder
+├── admin                       # AdminController (ADMIN-only), AdminService
 ├── reporting                   # ReportingController, ReportingService, ReportingRepository
 ├── batch                       # ReconciliationJob (@Scheduled), ReconciliationService
 └── integration                 # EligibilityService, FraudCheckService,
@@ -113,9 +112,10 @@ Postgres container. Tables: `users`, `policies`, `claims`, `claim_lines`, `invoi
 
 ## Intentional patterns (summary)
 
-Security: IDOR on `GET /claims/{id}` (CWE-639, flagship), SQL injection (CWE-89), missing auth on
-admin endpoints (CWE-306), hardcoded secrets (CWE-798), MD5 password hashing (CWE-327/916), path
-traversal in document download (CWE-22), and pinned vulnerable dependencies. Performance: N+1
+Security: claim ownership checks on `GET /claims/{id}` (CWE-639), parameterized SQL (CWE-89),
+authenticated ADMIN-only admin endpoints (CWE-306), environment-backed secrets (CWE-798), BCrypt
+password hashing (CWE-327/916), canonical-path containment in document download (CWE-22), and
+current log4j/commons-collections4 dependencies. Performance: N+1
 queries on the claims-list and billing paths, no caching, synchronous blocking integration calls,
 duplicated business logic, and dead code after error paths. Full details and rationale in
 [`REVIEW.md`](REVIEW.md).

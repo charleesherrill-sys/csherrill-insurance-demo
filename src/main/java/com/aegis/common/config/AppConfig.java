@@ -3,13 +3,7 @@ package com.aegis.common.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * Central configuration holder.
- *
- * <p>NOTE (see REVIEW.md): the integration credentials and admin bootstrap
- * password are hardcoded fallbacks in {@code application.properties}
- * (CWE-798, Use of Hard-coded Credentials). Intentional for the demo.
- */
+/** Central configuration holder. */
 @Component
 public class AppConfig {
 

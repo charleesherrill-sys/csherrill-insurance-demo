@@ -32,11 +32,7 @@ public class ClaimRepository {
         this.db = db;
     }
 
-    /**
-     * Loads a single claim by id. NOTE: this does NOT filter by member_user_id.
-     * Callers are responsible for authorization; the claim-detail controller does
-     * not perform that check (CWE-639). See REVIEW.md.
-     */
+    /** Loads a single claim by id. */
     public Claim findById(long id) {
         String sql = "SELECT " + BASE_COLUMNS + " FROM claims WHERE id = ?";
         try (Connection c = db.getConnection();
@@ -68,25 +64,20 @@ public class ClaimRepository {
         return out;
     }
 
-    /**
-     * Searches claims with an optional status filter typed by the user.
-     *
-     * <p>SECURITY (INTENTIONAL — see REVIEW.md): the {@code status} value is
-     * concatenated directly into the SQL string (CWE-89, SQL Injection). A value
-     * like {@code "' OR '1'='1"} returns every member's claims. Do NOT parameterize
-     * this unless that is the explicit task.
-     */
+    /** Searches claims for a member with a status filter. */
     public List<Claim> searchByStatus(long memberUserId, String status) {
         String sql = "SELECT " + BASE_COLUMNS + " FROM claims "
-                + "WHERE member_user_id = " + memberUserId
-                + " AND status = '" + status + "' "
+                + "WHERE member_user_id = ? AND status = ? "
                 + "ORDER BY submitted_at DESC";
         List<Claim> out = new ArrayList<>();
         try (Connection c = db.getConnection();
-             Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                out.add(map(rs));
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, memberUserId);
+            ps.setString(2, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    out.add(map(rs));
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException("claim searchByStatus failed", e);
