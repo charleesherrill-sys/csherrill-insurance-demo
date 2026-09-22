@@ -11,14 +11,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 
-/**
- * Document download endpoint.
- *
- * <p>SECURITY (INTENTIONAL — see REVIEW.md): the {@code file} parameter is passed
- * straight to {@link DocumentService#readDocument(String)}, which is vulnerable to
- * path traversal (CWE-22). Example: {@code GET /documents/download?file=../../etc/passwd}.
- */
+/** Document download endpoint. */
 @Controller
 public class DocumentController {
 
@@ -32,10 +27,15 @@ public class DocumentController {
     @GetMapping("/documents/download")
     @ResponseBody
     public ResponseEntity<byte[]> download(@RequestParam("file") String file) throws IOException {
-        byte[] content = documentService.readDocument(file);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file + "\"")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(content);
+        try {
+            byte[] content = documentService.readDocument(file);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + Paths.get(file).getFileName() + "\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(content);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

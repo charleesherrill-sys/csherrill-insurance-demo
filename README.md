@@ -6,9 +6,9 @@ legacy estate: think of it as a few subsystems carved out of a monolith that has
 millions of lines over more than a decade. It is deliberately built the way that estate would
 actually look, so it is useful for exploring, documenting, and modernizing legacy code.
 
-> This is a demonstration codebase. It intentionally contains security weaknesses,
-> performance problems, and technical debt. See [`REVIEW.md`](REVIEW.md) and
-> [`AGENTS.md`](AGENTS.md) before "fixing" anything.
+> This is a demonstration codebase. It contains intentional performance problems and technical
+> debt, while the documented security findings have been remediated. See [`REVIEW.md`](REVIEW.md)
+> and [`AGENTS.md`](AGENTS.md) before changing anything.
 
 ## Why it looks the way it does
 
@@ -55,6 +55,17 @@ docker-compose up --build
 This starts Postgres (schema and seed data are applied automatically) and the application.
 Open http://localhost:8080 and sign in.
 
+### Required environment variables
+
+The application requires these environment variables:
+
+- `AEGIS_ADMIN_BOOTSTRAP_PASSWORD`
+- `PAYMENT_GATEWAY_API_KEY`
+- `FRAUD_SHARED_SECRET`
+
+The optional database variables are `AEGIS_DB_URL`, `AEGIS_DB_USER`, and
+`AEGIS_DB_PASSWORD`.
+
 ### Seeded users
 
 | Username | Password | Role | User id |
@@ -80,7 +91,7 @@ top navigation once you are signed in.
 # Build and run the (sparse, partly flaky) test suite
 mvn clean package
 
-# Dependency / security audit (expected to find issues)
+# Dependency / security audit
 mvn -Paudit org.owasp:dependency-check-maven:check
 ```
 

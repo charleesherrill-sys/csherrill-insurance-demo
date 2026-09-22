@@ -4,19 +4,12 @@ import com.aegis.common.config.AppConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-/**
- * Reads/writes documents under the configured documents root.
- *
- * <p>SECURITY (INTENTIONAL — see REVIEW.md): {@link #readDocument(String)} joins
- * the caller-supplied filename to the root with no normalization or containment
- * check, so a value like {@code ../../etc/passwd} escapes the documents directory
- * (CWE-22, Path Traversal). Do NOT add canonical-path validation unless that is
- * the explicit task.
- */
+/** Reads and writes documents under the configured documents root. */
 @Service
 public class DocumentService {
 
@@ -28,21 +21,32 @@ public class DocumentService {
     }
 
     public byte[] readDocument(String filename) throws IOException {
-        // Vulnerable join: no canonicalization, no root-containment check.
-        File file = new File(config.getDocumentsRoot() + File.separator + filename);
-        return Files.readAllBytes(file.toPath());
+        return Files.readAllBytes(resolveWithinRoot(filename));
     }
 
     public void writeDocument(String filename, byte[] content) throws IOException {
-        File root = new File(config.getDocumentsRoot());
-        if (!root.exists()) {
-            root.mkdirs();
-        }
-        File file = new File(root, filename);
-        Files.write(file.toPath(), content);
+        Path root = Paths.get(config.getDocumentsRoot()).toAbsolutePath().normalize();
+        Files.createDirectories(root);
+        Files.write(resolveWithinRoot(filename), content);
     }
 
     public boolean exists(String filename) {
-        return new File(config.getDocumentsRoot() + File.separator + filename).exists();
+        try {
+            return Files.exists(resolveWithinRoot(filename));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private Path resolveWithinRoot(String filename) {
+        if (filename == null || filename.trim().isEmpty()) {
+            throw new IllegalArgumentException("invalid document path");
+        }
+        Path root = Paths.get(config.getDocumentsRoot()).toAbsolutePath().normalize();
+        Path resolved = root.resolve(filename).normalize();
+        if (resolved.equals(root) || !resolved.startsWith(root)) {
+            throw new IllegalArgumentException("invalid document path");
+        }
+        return resolved;
     }
 }

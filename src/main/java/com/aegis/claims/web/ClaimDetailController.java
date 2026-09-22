@@ -13,19 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import javax.servlet.http.HttpServletRequest;
 
-/**
- * Serves the claim-detail page: {@code GET /claims/{id}}.
- *
- * <p>SECURITY (INTENTIONAL — THE FLAGSHIP BUG — see REVIEW.md):
- * {@link #getClaim} loads the claim by id and renders it WITHOUT verifying that
- * the claim belongs to the authenticated member. Any logged-in user can read any
- * other member's claim by changing the id in the URL.
- * CWE-639: Authorization Bypass Through User-Controlled Key (IDOR).
- *
- * <p>The correct behavior would be: if the current user is not an ADJUSTER/ADMIN,
- * reject the request when {@code claim.getMemberUserId() != user.getUserId()}.
- * That check is deliberately absent. Do NOT add it unless that is the task.
- */
+/** Serves the claim-detail page: {@code GET /claims/{id}}. */
 @Controller
 public class ClaimDetailController {
 
@@ -50,19 +38,19 @@ public class ClaimDetailController {
             return "claims/not-found";
         }
 
-        // Access is logged, but NOT authorized. The audit row is exactly what the
-        // production alert in demo/trigger-artifact.md is built from: it shows a
-        // user reading a claim that belongs to a different member.
         boolean crossAccount = claim.getMemberUserId() != user.getUserId();
         auditService.record(user.getUserId(), "CLAIM_VIEW", "claim",
                 String.valueOf(id),
                 crossAccount
-                        ? "cross-account read: viewer " + user.getUserId()
+                        ? "cross-account read denied: viewer " + user.getUserId()
                           + " owner " + claim.getMemberUserId()
                         : "self read");
 
-        // MISSING AUTHORIZATION CHECK (CWE-639): the claim is returned regardless
-        // of ownership. See class Javadoc.
+        if (crossAccount && !user.canViewAllMembers()) {
+            model.addAttribute("user", user);
+            return "claims/not-found";
+        }
+
         model.addAttribute("user", user);
         model.addAttribute("claim", claim);
         return "claims/detail";

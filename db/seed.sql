@@ -1,9 +1,7 @@
 -- Aegis Claims Platform — seed data.
--- Provides multiple members with claims/invoices so the claim-detail IDOR
--- (CWE-639) is demonstrable: e.g. member "bhopkins" (id 4471) can open claim
--- 90233 which belongs to "amorgan" (id 5583). See demo/trigger-artifact.md.
+-- Provides multiple members with claims and invoices for the demo workflows.
 --
--- Passwords are unsalted MD5 (CWE-327). Cleartext for the demo:
+-- Passwords use BCrypt (strength 10). Cleartext for the demo:
 --   admin / admin123        (ADMIN)
 --   jadjuster / letmein     (ADJUSTER)
 --   amorgan / password      (MEMBER, id 5583)
@@ -12,12 +10,12 @@
 --   dpatel / claims2015     (MEMBER, id 6002)
 
 INSERT INTO users (id, username, password_hash, full_name, email, role) VALUES
-    (1,    'admin',     '0192023a7bbd73250516f069df18b500', 'System Administrator', 'admin@aegis.example',    'ADMIN'),
-    (2,    'jadjuster', '0d107d09f5bbe40cade3de5c71e9e9b7', 'Jordan Adjuster',      'jordan@aegis.example',   'ADJUSTER'),
-    (5583, 'amorgan',   '5f4dcc3b5aa765d61d8327deb882cf99', 'Alex Morgan',          'alex.morgan@example.com','MEMBER'),
-    (4471, 'bhopkins',  '5f4dcc3b5aa765d61d8327deb882cf99', 'Bailey Hopkins',       'bailey.h@example.com',   'MEMBER'),
-    (6001, 'cwright',   '5f4dcc3b5aa765d61d8327deb882cf99', 'Casey Wright',         'casey.w@example.com',    'MEMBER'),
-    (6002, 'dpatel',    'aa70c2ca310d1f894a5afab32fc53bae', 'Devan Patel',          'devan.p@example.com',    'MEMBER');
+    (1,    'admin',     '$2b$10$34J/ZYWSm1BxUJZwSS7TOuJlHK9rxEMFqJTUWYmKb90QqSqU6Xkn2', 'System Administrator', 'admin@aegis.example',    'ADMIN'),
+    (2,    'jadjuster', '$2b$10$m/HqLRnz0hqA5ofCNV6i2uBhrrcyQQImut1s0iSk3g4fuwZDPD0aW', 'Jordan Adjuster',      'jordan@aegis.example',   'ADJUSTER'),
+    (5583, 'amorgan',   '$2b$10$HN//kU90fMfHNOTNhIWDCuTk189i26f53E2wzTu/hMUit2YsfY6yi', 'Alex Morgan',          'alex.morgan@example.com','MEMBER'),
+    (4471, 'bhopkins',  '$2b$10$RwRTjCGWR.qjh.5jLja5Mu4HmzydOk/NJ1B.Nu/X0ZdHG4de1f9mC', 'Bailey Hopkins',       'bailey.h@example.com',   'MEMBER'),
+    (6001, 'cwright',   '$2b$10$HSIC6OebKs0vCnixG9zDse7tn70SLJsP6RGUhu/I6FYkhOC1zewt6', 'Casey Wright',         'casey.w@example.com',    'MEMBER'),
+    (6002, 'dpatel',    '$2b$10$42vVQCqVtuFVeehoCR9YieJENQ.Npc9dNx.cXWJtt7eTgSCpD7vfK', 'Devan Patel',          'devan.p@example.com',    'MEMBER');
 
 INSERT INTO policies (id, policy_number, holder_user_id, product, status, premium_cents, effective_date, end_date) VALUES
     (7001, 'POL-2019-5583', 5583, 'PPO Family Health',       'ACTIVE', 48200, DATE '2019-01-01', NULL),
@@ -25,7 +23,7 @@ INSERT INTO policies (id, policy_number, holder_user_id, product, status, premiu
     (7003, 'POL-2020-6001', 6001, 'Short-Term Disability',   'ACTIVE', 12900, DATE '2020-03-15', NULL),
     (7004, 'POL-2017-6002', 6002, 'PPO Family Health',       'LAPSED', 48200, DATE '2017-01-01', DATE '2023-01-01');
 
--- Claims. Claim 90233 belongs to amorgan (5583) — the flagship IDOR target.
+-- Claims. Claim 90233 belongs to amorgan (5583).
 INSERT INTO claims (id, claim_number, policy_id, member_user_id, claim_type, status, amount_cents, approved_cents, diagnosis_code, adjudicator_notes, submitted_at, adjudicated_at) VALUES
     (90233, 'CLM-90233', 7001, 5583, 'MEDICAL',    'ADJUDICATED', 184500, 152000, 'J20.9', 'Approved at contracted rate.',        TIMESTAMP '2024-02-11 09:14:00', TIMESTAMP '2024-02-13 16:02:00'),
     (90234, 'CLM-90234', 7001, 5583, 'PHARMACY',   'PAID',        4200,   4200,   'Z79.4', 'Formulary drug, full allowance.',    TIMESTAMP '2024-03-02 11:20:00', TIMESTAMP '2024-03-03 10:00:00'),
