@@ -1,5 +1,7 @@
 package com.aegis.auth.service;
 
+import java.time.Instant;
+
 /** An authenticated session, keyed by an opaque cookie value. */
 public class UserSession {
 
@@ -7,12 +9,14 @@ public class UserSession {
     private final long userId;
     private final String username;
     private final String role;
+    private final Instant createdAt;
 
     public UserSession(String sessionId, long userId, String username, String role) {
         this.sessionId = sessionId;
         this.userId = userId;
         this.username = username;
         this.role = role;
+        this.createdAt = Instant.now();
     }
 
     public String getSessionId() {
@@ -29,6 +33,10 @@ public class UserSession {
 
     public String getRole() {
         return role;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
     public boolean isAdmin() {
