@@ -52,6 +52,7 @@ public class LoginController {
         Cookie cookie = new Cookie(SessionManager.COOKIE_NAME, session.getSessionId());
         cookie.setPath("/");
         cookie.setHttpOnly(true);
+        cookie.setSecure(true);
         response.addCookie(cookie);
         return "redirect:/dashboard";
     }
