@@ -5,6 +5,8 @@ import com.aegis.auth.service.AuthService;
 import com.aegis.auth.service.SessionManager;
 import com.aegis.auth.service.UserSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,10 +51,13 @@ public class LoginController {
             return "login";
         }
         UserSession session = sessionManager.create(user);
-        Cookie cookie = new Cookie(SessionManager.COOKIE_NAME, session.getSessionId());
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from(SessionManager.COOKIE_NAME, session.getSessionId())
+                .path("/")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         return "redirect:/dashboard";
     }
 
@@ -66,10 +71,14 @@ public class LoginController {
                 }
             }
         }
-        Cookie clear = new Cookie(SessionManager.COOKIE_NAME, "");
-        clear.setPath("/");
-        clear.setMaxAge(0);
-        response.addCookie(clear);
+        ResponseCookie clear = ResponseCookie.from(SessionManager.COOKIE_NAME, "")
+                .path("/")
+                .maxAge(0)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, clear.toString());
         return "redirect:/login";
     }
 }
