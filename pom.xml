@@ -74,6 +74,12 @@
             <version>3.2.1</version>
         </dependency>
 
+        <!-- BCrypt password hashing via Spring Security's PasswordEncoder. -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
