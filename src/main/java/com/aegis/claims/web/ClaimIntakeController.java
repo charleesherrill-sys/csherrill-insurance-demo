@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /** New-claim form plus the submit/validate/adjudicate actions. */
 @Controller
@@ -51,7 +52,14 @@ public class ClaimIntakeController {
     }
 
     @PostMapping("/claims/{id}/adjudicate")
-    public String adjudicate(@org.springframework.web.bind.annotation.PathVariable long id) {
+    public String adjudicate(@org.springframework.web.bind.annotation.PathVariable long id,
+                             HttpServletRequest request,
+                             HttpServletResponse response) throws java.io.IOException {
+        UserSession user = CurrentUser.from(request);
+        if (!user.canViewAllMembers()) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return null;
+        }
         // Run validate then adjudicate (submit -> validate -> adjudicate -> pay).
         intakeService.validate(id);
         adjudicationService.adjudicate(id);
