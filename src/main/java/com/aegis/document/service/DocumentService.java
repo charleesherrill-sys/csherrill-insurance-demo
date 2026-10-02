@@ -10,12 +10,6 @@ import java.nio.file.Files;
 
 /**
  * Reads/writes documents under the configured documents root.
- *
- * <p>SECURITY (INTENTIONAL — see REVIEW.md): {@link #readDocument(String)} joins
- * the caller-supplied filename to the root with no normalization or containment
- * check, so a value like {@code ../../etc/passwd} escapes the documents directory
- * (CWE-22, Path Traversal). Do NOT add canonical-path validation unless that is
- * the explicit task.
  */
 @Service
 public class DocumentService {
@@ -27,22 +21,44 @@ public class DocumentService {
         this.config = config;
     }
 
+    /**
+     * Validates that the resolved path stays within the documents root.
+     * Rejects filenames containing path separators or '..' components.
+     *
+     * @throws SecurityException if the filename escapes the documents root
+     */
+    private File safeResolve(String filename) throws IOException {
+        if (filename == null || filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+            throw new SecurityException("Invalid document filename: " + filename);
+        }
+        File root = new File(config.getDocumentsRoot()).getCanonicalFile();
+        File resolved = new File(root, filename).getCanonicalFile();
+        if (!resolved.getPath().startsWith(root.getPath() + File.separator)
+                && !resolved.equals(root)) {
+            throw new SecurityException("Document path escapes root: " + filename);
+        }
+        return resolved;
+    }
+
     public byte[] readDocument(String filename) throws IOException {
-        // Vulnerable join: no canonicalization, no root-containment check.
-        File file = new File(config.getDocumentsRoot() + File.separator + filename);
+        File file = safeResolve(filename);
         return Files.readAllBytes(file.toPath());
     }
 
     public void writeDocument(String filename, byte[] content) throws IOException {
-        File root = new File(config.getDocumentsRoot());
+        File root = new File(config.getDocumentsRoot()).getCanonicalFile();
         if (!root.exists()) {
             root.mkdirs();
         }
-        File file = new File(root, filename);
+        File file = safeResolve(filename);
         Files.write(file.toPath(), content);
     }
 
     public boolean exists(String filename) {
-        return new File(config.getDocumentsRoot() + File.separator + filename).exists();
+        try {
+            return safeResolve(filename).exists();
+        } catch (IOException | SecurityException e) {
+            return false;
+        }
     }
 }
