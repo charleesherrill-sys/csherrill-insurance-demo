@@ -3,32 +3,45 @@ package com.aegis.auth;
 import com.aegis.auth.service.PasswordHasher;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Locks in the (intentionally weak) MD5 hashing behaviour. See REVIEW.md — this
- * test documents the current behaviour, it is not an endorsement of MD5.
+ * Regression tests for PasswordHasher after migration from MD5 to BCrypt.
+ *
+ * <p>BCrypt hashes are salted — two calls on the same input produce different
+ * encoded strings. Tests therefore assert round-trip correctness via
+ * {@code matches} rather than a fixed digest value.
  */
 public class PasswordHasherTest {
 
     private final PasswordHasher hasher = new PasswordHasher();
 
     @Test
-    public void hashesKnownMd5() {
-        assertEquals("5f4dcc3b5aa765d61d8327deb882cf99", hasher.hash("password"));
+    public void hashThenMatchesReturnsTrue() {
+        String encoded = hasher.hash("password");
+        assertTrue(hasher.matches("password", encoded));
     }
 
     @Test
-    public void padsLeadingZeros() {
-        // A digest that would otherwise drop a leading zero must still be 32 chars.
-        assertEquals(32, hasher.hash("aegis").length());
+    public void matchesReturnsFalseForWrongPassword() {
+        String encoded = hasher.hash("password");
+        assertFalse(hasher.matches("wrong", encoded));
     }
 
     @Test
-    public void matchesStoredHash() {
-        assertTrue(hasher.matches("admin123", "0192023a7bbd73250516f069df18b500"));
-        assertFalse(hasher.matches("wrong", "0192023a7bbd73250516f069df18b500"));
+    public void eachHashIsUniqueDueToSalt() {
+        // BCrypt embeds a random salt; two hashes of the same input must differ.
+        String first = hasher.hash("password");
+        String second = hasher.hash("password");
+        assertNotEquals(first, second);
+    }
+
+    @Test
+    public void hashIsBcryptFormat() {
+        // BCrypt-encoded strings start with $2a$ or $2b$.
+        String encoded = hasher.hash("admin123");
+        assertTrue("Expected BCrypt format", encoded.startsWith("$2"));
     }
 }
