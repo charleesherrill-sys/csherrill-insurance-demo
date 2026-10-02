@@ -45,7 +45,12 @@ jobs:
         env:
           AEGIS_DB_URL: jdbc:postgresql://localhost:5432/aegis
           AEGIS_DB_USER: aegis
-          AEGIS_DB_PASSWORD: aegis_dev_password
+          AEGIS_DB_PASSWORD: ${{ secrets.AEGIS_DB_PASSWORD }}
+          AEGIS_ADMIN_USER: ${{ secrets.AEGIS_ADMIN_USER }}
+          AEGIS_ADMIN_PASSWORD: ${{ secrets.AEGIS_ADMIN_PASSWORD }}
+          AEGIS_PAYMENT_GATEWAY_URL: ${{ secrets.AEGIS_PAYMENT_GATEWAY_URL }}
+          AEGIS_PAYMENT_GATEWAY_API_KEY: ${{ secrets.AEGIS_PAYMENT_GATEWAY_API_KEY }}
+          AEGIS_FRAUD_SHARED_SECRET: ${{ secrets.AEGIS_FRAUD_SHARED_SECRET }}
         run: mvn -B clean package
 
       - name: Upload test reports
